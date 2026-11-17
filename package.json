@@ -6,7 +6,7 @@
     "start": "node server/dist/server.js",
     "start:dev": "ng serve",
     "build": "ng build",
-    "build:gh-pages": "ng build --base-href ./",
+    "build:gh-pages": "ng build --base-href /rxjs-demo/",
     "build:server": "tsc -p server/server.tsconfig.json",
     "build:all": "ng build && tsc -p server/server.tsconfig.json",
     "watch": "ng build --watch --configuration development",

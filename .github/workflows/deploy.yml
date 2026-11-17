@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Build Angular Application
-        run: npx ng build --base-href ./
+        run: npx ng build --base-href /rxjs-demo/
 
       - name: Copy index.html to 404.html for SPA routing
         run: cp dist/rxjs-demo/browser/index.html dist/rxjs-demo/browser/404.html
