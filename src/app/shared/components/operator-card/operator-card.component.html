@@ -1,0 +1,105 @@
+<article class="operator-card" [class.compact]="compact()">
+  <header class="card-top">
+    <div class="name-category">
+      <h3 class="operator-name">{{ operator().name }}</h3>
+      <span class="badge" [class]="getCategoryBadgeClass(operator().category)">
+        {{ operator().category }}
+      </span>
+      @if (operator().isDeprecated) {
+        <span class="badge badge-deprecated">DEPRECATED</span>
+      }
+    </div>
+
+    <div class="meta-right">
+      <span class="difficulty-pill" [class]="operator().difficulty">
+        {{ operator().difficulty | uppercase }}
+      </span>
+    </div>
+  </header>
+
+  <p class="operator-summary">{{ operator().summary }}</p>
+
+  @if (operator().isDeprecated) {
+    <div class="card-deprecation-callout" role="alert">
+      <div class="dep-header">
+        <span class="dep-icon">⚠️</span>
+        <strong class="dep-title">Deprecated in RxJS 7+</strong>
+      </div>
+      <p class="dep-notice">{{ operator().deprecationNotice }}</p>
+      @if (operator().modernAlternative) {
+        <div class="dep-alternative">
+          <span class="alt-label">Modern Replacement:</span>
+          <code class="alt-code">{{ operator().modernAlternative }}</code>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Signature snippet -->
+  <div class="signature-container">
+    <code class="signature-code">{{ operator().signature }}</code>
+    <button
+      class="copy-sig-btn"
+      [class.copied]="signatureCopied()"
+      (click)="copySignature()"
+      type="button"
+      title="Copy signature"
+    >
+      {{ signatureCopied() ? '✓' : 'Copy' }}
+    </button>
+  </div>
+
+  @if (!compact()) {
+    <p class="operator-description">{{ operator().description }}</p>
+
+    <!-- Use Cases -->
+    @if (operator().useCases && operator().useCases!.length > 0) {
+      <div class="section-box use-cases-box">
+        <span class="section-label">Common Use Cases</span>
+        <ul class="bullet-list">
+          @for (useCase of operator().useCases!; track $index) {
+            <li class="bullet-item positive">
+              <span class="icon">✓</span>
+              <span>{{ useCase }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Pitfalls -->
+    @if (operator().pitfalls && operator().pitfalls!.length > 0) {
+      <div class="section-box pitfalls-box">
+        <span class="section-label alert">Pitfalls & Gotchas</span>
+        <ul class="bullet-list">
+          @for (pitfall of operator().pitfalls!; track $index) {
+            <li class="bullet-item warning">
+              <span class="icon">⚠</span>
+              <span>{{ pitfall }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Related Operators -->
+    @if (operator().relatedOperators && operator().relatedOperators!.length > 0) {
+      <div class="related-operators">
+        <span class="related-label">Related:</span>
+        <div class="related-chips">
+          @for (rel of operator().relatedOperators!; track rel) {
+            <span class="badge badge-muted">{{ rel }}</span>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  @if (showPlaygroundLink()) {
+    <footer class="card-footer">
+      <button class="btn btn-primary btn-sm" (click)="onPlaygroundClick()" type="button">
+        Launch Interactive Demo →
+      </button>
+    </footer>
+  }
+</article>

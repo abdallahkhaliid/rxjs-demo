@@ -1,0 +1,63 @@
+<div class="comparison-container">
+  <div class="table-scroll-wrapper">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th class="feature-col-header">Feature / Capability</th>
+          @for (item of data().items; track item.id) {
+            <th class="item-col-header" [class.highlighted]="isHighlighted(item.id)">
+              <div class="item-header-content">
+                <span class="item-name">{{ item.name }}</span>
+                @if (item.badge) {
+                  <span class="badge badge-primary">{{ item.badge }}</span>
+                }
+              </div>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Recommended Use Row -->
+        <tr class="recommended-row">
+          <td class="feature-label-cell">
+            <span class="feature-title">Best Used For</span>
+          </td>
+          @for (item of data().items; track item.id) {
+            <td class="item-cell recommended-cell" [class.highlighted]="isHighlighted(item.id)">
+              {{ item.recommendedUse }}
+            </td>
+          }
+        </tr>
+
+        <!-- Feature Rows -->
+        @for (feature of data().features; track feature.id) {
+          <tr>
+            <td class="feature-label-cell">
+              <span class="feature-title">{{ feature.label }}</span>
+              @if (feature.description) {
+                <span class="feature-sub">{{ feature.description }}</span>
+              }
+            </td>
+            @for (item of data().items; track item.id) {
+              @let char = item.characteristics ? item.characteristics[feature.id] : undefined;
+              <td class="item-cell" [class.highlighted]="isHighlighted(item.id)">
+                @if (char) {
+                  <div class="char-content" [class]="char.status || 'neutral'">
+                    <span class="status-indicator">
+                      @if (char.status === 'positive') { ✓ }
+                      @else if (char.status === 'negative') { ✕ }
+                      @else { • }
+                    </span>
+                    <span class="char-text">{{ char.text }}</span>
+                  </div>
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

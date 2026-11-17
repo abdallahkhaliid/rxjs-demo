@@ -1,0 +1,88 @@
+<div class="console-container">
+  <div class="console-header">
+    <div class="header-left">
+      <span class="status-dot" [class.pulsing]="isStreaming()" [class.active]="!isStreaming() && visibleEntries().length > 0"></span>
+      <span class="console-title">{{ title() }}</span>
+      <span class="entry-count-badge">{{ visibleEntries().length }} items</span>
+    </div>
+
+    <div class="header-controls">
+      <button
+        class="ctrl-btn"
+        [class.paused]="isPaused()"
+        (click)="togglePause()"
+        type="button"
+        title="Pause stream"
+      >
+        {{ isPaused() ? '▶ Resume' : '⏸ Pause' }}
+      </button>
+
+      <button
+        class="ctrl-btn"
+        (click)="onReplay()"
+        type="button"
+        title="Replay stream"
+      >
+        ↺ Replay
+      </button>
+
+      <button
+        class="ctrl-btn"
+        [class.success]="copied()"
+        (click)="copyLogs()"
+        type="button"
+        title="Copy logs"
+      >
+        {{ copied() ? '✓ Copied' : '📋 Copy' }}
+      </button>
+
+      <button
+        class="ctrl-btn danger"
+        (click)="onClear()"
+        type="button"
+        title="Clear console"
+      >
+        ✕ Clear
+      </button>
+    </div>
+  </div>
+
+  <div #logViewport class="console-viewport">
+    @if (visibleEntries().length > 0) {
+      <div class="console-rows">
+        @for (entry of visibleEntries(); track entry.id) {
+          <div class="console-row" [class]="'entry-' + entry.type">
+            @if (showTimestamps()) {
+              <span class="entry-time">+{{ entry.relativeMs }}ms</span>
+            }
+
+            @if (entry.streamName) {
+              <span class="entry-stream-tag">{{ entry.streamName }}</span>
+            }
+
+            <span class="entry-type-pill" [class]="'pill-' + entry.type">
+              {{ entry.type }}
+            </span>
+
+            <div class="entry-content">
+              @if (entry.value !== undefined) {
+                <span class="entry-value">{{ formatValue(entry.value) }}</span>
+              }
+              @if (entry.description) {
+                <span class="entry-desc">{{ entry.description }}</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="console-empty">
+        <span class="empty-icon">📺</span>
+        <span class="empty-text">Stream output will appear here in real-time</span>
+        @if (isStreaming()) {
+          <span class="empty-sub text-muted">Listening for emissions...</span>
+        }
+      </div>
+    }
+  </div>
+</div>

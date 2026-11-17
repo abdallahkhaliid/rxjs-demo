@@ -1,0 +1,82 @@
+<div class="playground-wrapper">
+  <!-- Header Bar -->
+  <header class="playground-header">
+    <div class="header-left">
+      <div class="category-meta">
+        @if (category()) {
+          <span class="badge badge-primary">{{ category() }}</span>
+        }
+        @if (difficulty()) {
+          <span class="difficulty-tag" [class]="difficulty()">
+            {{ difficulty() | uppercase }}
+          </span>
+        }
+      </div>
+      <h1 class="topic-title">{{ title() }}</h1>
+      @if (subtitle()) {
+        <p class="topic-subtitle">{{ subtitle() }}</p>
+      }
+    </div>
+
+    <div class="header-right">
+      @if (topicId()) {
+        <button
+          class="btn completion-btn btn-complete-toggle"
+          [class.completed]="isCompleted()"
+          [class.celebrating]="celebrationActive()"
+          (click)="toggleTopicCompletion()"
+          type="button"
+        >
+          @if (isCompleted()) {
+            <span class="btn-check">✓</span> Completed
+          } @else {
+            <span>○</span> Mark as Completed
+          }
+        </button>
+      }
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="tabs-nav" role="tablist">
+    @for (tab of renderedTabs(); track tab.id) {
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === tab.id"
+        (click)="selectTab(tab.id)"
+        type="button"
+        role="tab"
+        [attr.aria-selected]="activeTab() === tab.id"
+      >
+        <span class="tab-icon">{{ tab.icon }}</span>
+        <span class="tab-label">{{ tab.label }}</span>
+        @if (activeTab() === tab.id) {
+          <span class="active-indicator"></span>
+        }
+      </button>
+    }
+  </nav>
+
+  <!-- Content Slots -->
+  <main class="playground-body">
+    <div class="tab-content" [class.hidden]="activeTab() !== 'concept'" role="tabpanel">
+      <ng-content select="[slot=concept]" />
+    </div>
+
+    <div class="tab-content" [class.hidden]="activeTab() !== 'code'" role="tabpanel">
+      <ng-content select="[slot=code]" />
+    </div>
+
+    <div class="tab-content" [class.hidden]="activeTab() !== 'visual'" role="tabpanel">
+      <ng-content select="[slot=visual]" />
+    </div>
+
+    <div class="tab-content" [class.hidden]="activeTab() !== 'comparison'" role="tabpanel">
+      <ng-content select="[slot=comparison]" />
+    </div>
+
+    <div class="tab-content" [class.hidden]="activeTab() !== 'quiz'" role="tabpanel">
+      <ng-content select="[slot=quiz]" />
+    </div>
+  </main>
+</div>

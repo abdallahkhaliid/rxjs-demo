@@ -1,0 +1,210 @@
+<app-playground-wrapper
+  [title]="config.title"
+  [subtitle]="config.subtitle"
+  [category]="config.category"
+  [difficulty]="config.difficulty"
+  [topicId]="config.id"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+  [(activeTab)]="activeTab"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-container concept-panel">
+    <div class="concept-summary-card">
+      <p class="summary-text">{{ config.conceptSummary }}</p>
+    </div>
+
+    @if (config.conceptPillars && config.conceptPillars.length > 0) {
+      <div class="pillars-section">
+        <h3 class="section-heading">Architectural Highlights</h3>
+        <div class="pillars-grid">
+          @for (pillar of config.conceptPillars; track pillar.title) {
+            <div class="pillar-card">
+              <h4 class="pillar-title">{{ pillar.title }}</h4>
+              <p class="pillar-desc">{{ pillar.description }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (config.conceptSections && config.conceptSections.length > 0) {
+      <div class="deep-dive-section">
+        @for (sec of config.conceptSections; track sec.title) {
+          <div class="deep-dive-card">
+            <h4>{{ sec.title }}</h4>
+            <p>{{ sec.content }}</p>
+          </div>
+        }
+      </div>
+    }
+
+    @if (config.takeaways && config.takeaways.length > 0) {
+      <div class="takeaways-card">
+        <h4>💡 Key Takeaways</h4>
+        <ul>
+          @for (item of config.takeaways; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-container">
+    <app-code-block
+      [title]="config.codeTitle"
+      [code]="config.codeSnippet"
+      language="typescript"
+      [highlightLines]="[2, 3, 9, 12, 17, 21]"
+    />
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-container visual-demo-container">
+    <!-- Status & Control Banner -->
+    <div class="polling-toolbar">
+      <div class="status-indicator-box">
+        @if (!state().isRunning) {
+          <span class="status-dot stopped"></span>
+          <span class="status-label">POLLING STOPPED</span>
+        } @else if (!state().isTabVisible) {
+          <span class="status-dot suspended"></span>
+          <span class="status-label">❚❚ TAB HIDDEN (POLLING SUSPENDED)</span>
+        } @else {
+          <span class="status-dot active"></span>
+          <span class="status-label">● ACTIVE POLLING LOOP</span>
+        }
+      </div>
+
+      <div class="toolbar-actions">
+        <button
+          type="button"
+          class="btn"
+          [class.btn-primary]="!state().isRunning"
+          [class.btn-danger]="state().isRunning"
+          (click)="togglePolling()"
+        >
+          {{ state().isRunning ? '⏹ Stop Polling' : '▶ Start Polling' }}
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          [disabled]="!state().isRunning"
+          (click)="refreshNow()"
+        >
+          🔄 Refresh Now
+        </button>
+
+        <div class="interval-slider-box">
+          <label for="poll-interval">Interval: <strong>{{ intervalControl.value }}ms</strong></label>
+          <input
+            id="poll-interval"
+            type="range"
+            min="500"
+            max="8000"
+            step="500"
+            [formControl]="intervalControl"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Simulation Controls -->
+    <div class="sim-controls-bar">
+      <span class="sim-label">Edge Case Simulators:</span>
+      <label class="toggle-control">
+        <input type="checkbox" [formControl]="simulateHiddenControl" />
+        <span>Simulate Hidden Tab (Suspension Test)</span>
+      </label>
+      <label class="toggle-control">
+        <input type="checkbox" [formControl]="simulateErrorControl" />
+        <span>Simulate 500 Network Error (Backoff Test)</span>
+      </label>
+    </div>
+
+    <!-- Polling Telemetry Stat Badges -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-name">Total Polls</span>
+        <span class="stat-val">{{ state().pollCount }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-name">Retries Handled</span>
+        <span class="stat-val retry">{{ state().retryCount }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-name">Last Latency</span>
+        <span class="stat-val">{{ state().lastLatencyMs }}ms</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-name">Tab Visibility</span>
+        <span class="stat-val" [class.suspended-val]="!state().isTabVisible">
+          {{ state().isTabVisible ? 'Visible' : 'Hidden (Paused)' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- History Log Table -->
+    <div class="history-panel">
+      <div class="panel-header">
+        <h4>Recent Poll History (Last 10 Attempts)</h4>
+      </div>
+
+      @if (state().history.length > 0) {
+        <div class="history-table-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Poll #</th>
+                <th>Status</th>
+                <th>Latency</th>
+                <th>Attempt</th>
+                <th>Payload Snippet</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of state().history; track item.pollId) {
+                <tr [class]="'row-' + item.status">
+                  <td class="poll-id">#{{ item.pollId }}</td>
+                  <td>
+                    <span class="badge" [class]="'badge-' + item.status">
+                      {{ item.status.toUpperCase() }}
+                    </span>
+                  </td>
+                  <td>{{ item.durationMs }}ms</td>
+                  <td>{{ item.attempt }}</td>
+                  <td class="snippet-cell">{{ item.snippet || item.error || 'N/A' }}</td>
+                  <td class="time-cell">{{ item.timestamp | date:'HH:mm:ss.sss' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-history">
+          <span>Start polling to observe live periodic request cycles.</span>
+        </div>
+      }
+    </div>
+
+    <!-- Output console -->
+    <app-output-console
+      title="Polling System Stream Events"
+      [entries]="consoleEntries()"
+      (clear)="clearConsole()"
+    />
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-container">
+    <app-comparison-table [data]="config.comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-container">
+    <app-quiz-block [questions]="config.quizQuestions" [topicId]="config.id" />
+  </div>
+</app-playground-wrapper>

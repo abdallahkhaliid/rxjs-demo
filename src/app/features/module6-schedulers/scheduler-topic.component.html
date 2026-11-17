@@ -1,0 +1,302 @@
+@if (topic(); as data) {
+  <app-playground-wrapper
+    [title]="data.title"
+    [subtitle]="data.subtitle"
+    [category]="data.category"
+    [difficulty]="data.difficulty"
+    [topicId]="data.id"
+    [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+    [(activeTab)]="activeTab"
+  >
+    <!-- 1. Concept Tab -->
+    <div slot="concept" class="tab-container concept-panel">
+      <div class="concept-summary-card">
+        <p class="summary-text">{{ data.concept.summary }}</p>
+      </div>
+
+      @if (data.concept.pillars && data.concept.pillars.length > 0) {
+        <div class="pillars-section">
+          <h2 class="section-heading">{{ data.concept.pillarsTitle || 'Core Capabilities' }}</h2>
+          <div class="pillars-grid">
+            @for (pillar of data.concept.pillars; track pillar.title) {
+              <div class="pillar-card">
+                <h3 class="pillar-title">{{ pillar.title }}</h3>
+                <p class="pillar-desc">{{ pillar.description }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="deep-dive-section">
+        @for (section of data.concept.sections; track section.title) {
+          <div class="deep-dive-card">
+            <h3>{{ section.title }}</h3>
+            <p>{{ section.content }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="takeaways-card">
+        <h3>💡 Key Takeaways</h3>
+        <ul>
+          @for (takeaway of data.concept.takeaways; track takeaway) {
+            <li>{{ takeaway }}</li>
+          }
+        </ul>
+      </div>
+    </div>
+
+    <!-- 2. Code Tab -->
+    <div slot="code" class="tab-container">
+      <app-code-block
+        [title]="data.code.title"
+        [code]="data.code.code"
+        [language]="data.code.language"
+        [highlightLines]="data.code.highlightLines || []"
+      />
+    </div>
+
+    <!-- 3. Visual Demo Tab -->
+    <div slot="visual" class="tab-container visual-demo-container">
+      <div class="demo-header">
+        <h2 class="demo-title">{{ data.demo.title }}</h2>
+        <p class="demo-desc">{{ data.demo.description }}</p>
+      </div>
+
+      <!-- Demo A: queueScheduler Trampoline Playground -->
+      @if (data.id === 'queue-scheduler') {
+        <div class="interactive-demo-card">
+          <div class="control-panel">
+            <div class="slider-group">
+              <label for="depthSlider" class="control-label">
+                Recursion Depth: <strong>{{ recursionDepth() }}</strong>
+              </label>
+              <input
+                id="depthSlider"
+                type="range"
+                min="1"
+                max="30"
+                [ngModel]="recursionDepth()"
+                (ngModelChange)="recursionDepth.set($event)"
+                class="range-slider"
+              />
+              <span class="range-meta">Safe range: 1 to 30 depth</span>
+            </div>
+
+            <div class="button-group">
+              <button
+                type="button"
+                class="btn-primary"
+                [disabled]="trampolineExecuting()"
+                (click)="runTrampolineDemo()"
+              >
+                ▶ Run Trampoline Recursion (queueScheduler)
+              </button>
+              <button
+                type="button"
+                class="btn-secondary"
+                (click)="simulateStackOverflowRisk()"
+              >
+                ⚠️ View Standard JS Recursion Risk
+              </button>
+            </div>
+          </div>
+
+          <div class="stack-metrics-box">
+            <div class="metric-item">
+              <span class="metric-label">Trampoline Call Stack Depth:</span>
+              <span class="metric-value status-good">1 (Constant)</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Recursion Levels Requested:</span>
+              <span class="metric-value">{{ recursionDepth() }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Stack Overflow Risk:</span>
+              <span class="metric-value status-zero">0% (Trampoline Protected)</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Demo B: asapScheduler Microtask Drain Playground -->
+      @if (data.id === 'asap-scheduler') {
+        <div class="interactive-demo-card">
+          <div class="control-panel">
+            <p class="demo-instruction">
+              Click the button below to dispatch a mixed sequence of synchronous code, microtasks (asapScheduler), and macrotasks (asyncScheduler).
+            </p>
+            <div class="button-group">
+              <button
+                type="button"
+                class="btn-primary"
+                [disabled]="microtaskRaceRunning()"
+                (click)="runMicrotaskRaceDemo()"
+              >
+                🏁 Run Microtask vs Macrotask Race
+              </button>
+            </div>
+          </div>
+
+          <div class="phase-pipeline-preview">
+            <div class="pipeline-step">
+              <span class="step-badge sync">1. Sync Code</span>
+              <span class="step-desc">Evaluates on Call Stack</span>
+            </div>
+            <span class="arrow">➔</span>
+            <div class="pipeline-step">
+              <span class="step-badge asap">2. asapScheduler</span>
+              <span class="step-desc">Drains Microtask Queue (FIFO)</span>
+            </div>
+            <span class="arrow">➔</span>
+            <div class="pipeline-step">
+              <span class="step-badge async">3. asyncScheduler</span>
+              <span class="step-desc">Dispatched on Macrotask Queue</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Demo C: asyncScheduler Delay & Cancellation Playground -->
+      @if (data.id === 'async-scheduler') {
+        <div class="interactive-demo-card">
+          <div class="control-panel">
+            <div class="slider-group">
+              <label for="delaySlider" class="control-label">
+                Scheduled Delay: <strong>{{ configuredDelayMs() }}ms</strong>
+              </label>
+              <input
+                id="delaySlider"
+                type="range"
+                min="50"
+                max="2000"
+                step="50"
+                [disabled]="pendingActionActive()"
+                [ngModel]="configuredDelayMs()"
+                (ngModelChange)="configuredDelayMs.set($event)"
+                class="range-slider"
+              />
+              <span class="range-meta">50ms to 2000ms</span>
+            </div>
+
+            <div class="button-group">
+              <button
+                type="button"
+                class="btn-primary"
+                [disabled]="pendingActionActive()"
+                (click)="scheduleDelayedAction()"
+              >
+                ⏱️ Schedule Delayed Action
+              </button>
+
+              <button
+                type="button"
+                class="btn-danger"
+                [disabled]="!pendingActionActive()"
+                (click)="cancelDelayedAction()"
+              >
+                🛑 Cancel Action (action.unsubscribe())
+              </button>
+            </div>
+          </div>
+
+          @if (pendingActionActive()) {
+            <div class="delay-progress-container">
+              <div class="delay-labels">
+                <span>Waiting for timer to elapse...</span>
+                <span>{{ elapsedTimerMs() }}ms / {{ configuredDelayMs() }}ms</span>
+              </div>
+              <div class="delay-track">
+                <div
+                  class="delay-fill"
+                  [style.width.%]="(elapsedTimerMs() / configuredDelayMs()) * 100"
+                ></div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Demo D: animationFrameScheduler 60 FPS Visualizer -->
+      @if (data.id === 'animation-frame-scheduler') {
+        <div class="interactive-demo-card">
+          <div class="control-panel">
+            <p class="demo-instruction">
+              Run a 120-frame animation synchronized with the browser display refresh rate using <code>animationFrameScheduler</code>.
+            </p>
+            <div class="button-group">
+              <button
+                type="button"
+                class="btn-primary"
+                [disabled]="animationRunning()"
+                (click)="startAnimation()"
+              >
+                ▶ Start 60 FPS Animation
+              </button>
+
+              <button
+                type="button"
+                class="btn-secondary"
+                [disabled]="!animationRunning()"
+                (click)="stopAnimation()"
+              >
+                ⏹ Stop Animation
+              </button>
+            </div>
+          </div>
+
+          <div class="animation-metrics-grid">
+            <div class="metric-card">
+              <span class="metric-title">Measured Frame Rate</span>
+              <span class="metric-stat">{{ currentFps() }} FPS</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-title">Vsync Frame Delta</span>
+              <span class="metric-stat">{{ lastFrameDeltaMs() }} ms</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-title">Animation Progress</span>
+              <span class="metric-stat">{{ animationProgress() }}%</span>
+            </div>
+          </div>
+
+          <!-- Animated Box Track -->
+          <div class="animation-track">
+            <div
+              class="animated-puck"
+              [style.left.%]="animationProgress()"
+            >
+              <span class="puck-label">60 FPS</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Live Console Output for Interactive Topic -->
+      <app-output-console
+        title="Live Execution Console"
+        [entries]="consoleEntries()"
+        (clear)="clearConsole()"
+      />
+    </div>
+
+    <!-- 4. Comparison Tab -->
+    <div slot="comparison" class="tab-container">
+      @if (data.comparison) {
+        <app-comparison-table [data]="data.comparison" />
+      }
+    </div>
+
+    <!-- 5. Quiz Tab -->
+    <div slot="quiz" class="tab-container">
+      @if (data.quiz && data.quiz.length > 0) {
+        <app-quiz-block
+          [questions]="data.quiz"
+          [topicId]="data.id"
+          (completed)="onQuizCompleted($event)"
+        />
+      }
+    </div>
+  </app-playground-wrapper>
+}

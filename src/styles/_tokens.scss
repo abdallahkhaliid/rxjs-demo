@@ -1,0 +1,115 @@
+:root {
+  /* Color Palette - Dark Canvas & Surfaces */
+  --color-bg-base: #0b0f19;              /* Deep background canvas */
+  --color-bg-surface: #111827;           /* Card & sidenav surface */
+  --color-bg-surface-elevated: #1e293b;  /* Elevated cards, dropdowns, dialogs */
+  --color-bg-surface-hover: #334155;     /* Hover surface */
+  --color-bg-code: #0a0d14;              /* Code editor & terminal background */
+  --color-bg-overlay: rgba(11, 15, 25, 0.8); /* Modal backdrop */
+
+  /* Borders */
+  --color-border-subtle: rgba(255, 255, 255, 0.07);
+  --color-border-default: rgba(255, 255, 255, 0.12);
+  --color-border-strong: rgba(255, 255, 255, 0.22);
+  --color-border-focus: #6366f1;
+
+  /* Typography Colors */
+  --color-text-primary: #f8fafc;         /* High emphasis headers/text */
+  --color-text-secondary: #94a3b8;       /* Medium emphasis descriptions */
+  --color-text-muted: #64748b;           /* Low emphasis captions/subtitles */
+  --color-text-inverse: #0b0f19;
+
+  /* Brand & Accents (RxJS Magenta/Indigo/Violet) */
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;          /* Core Indigo */
+  --color-primary-600: #4f46e5;
+  --color-primary-glow: rgba(99, 102, 241, 0.25);
+  --color-accent-magenta: #ec4899;       /* RxJS signature pink */
+  --color-accent-purple: #a855f7;        /* Stream purple */
+  --color-accent-cyan: #06b6d4;          /* Reactive cyan */
+
+  /* Semantic Feedback Colors */
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.12);
+  --color-success-border: rgba(16, 185, 129, 0.3);
+
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
+
+  --color-danger: #ef4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.12);
+  --color-danger-border: rgba(239, 68, 68, 0.3);
+
+  --color-info: #38bdf8;
+  --color-info-bg: rgba(56, 189, 248, 0.12);
+  --color-info-border: rgba(56, 189, 248, 0.3);
+
+  /* Marble Diagram Emission Colors */
+  --color-marble-1: #f43f5e;             /* Rose */
+  --color-marble-2: #f97316;             /* Orange */
+  --color-marble-3: #eab308;             /* Amber */
+  --color-marble-4: #10b981;             /* Emerald */
+  --color-marble-5: #06b6d4;             /* Cyan */
+  --color-marble-6: #6366f1;             /* Indigo */
+  --color-marble-7: #a855f7;             /* Purple */
+  --color-marble-8: #ec4899;             /* Pink */
+  --color-marble-complete: #94a3b8;      /* Completion vertical bar */
+  --color-marble-error: #ef4444;         /* Error X marker */
+
+  /* Typography Scales */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-base: 1rem;     /* 16px */
+  --font-size-lg: 1.125rem;   /* 18px */
+  --font-size-xl: 1.25rem;    /* 20px */
+  --font-size-2xl: 1.5rem;    /* 24px */
+  --font-size-3xl: 1.875rem;  /* 30px */
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Border Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Shadows & Elevations */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px var(--color-primary-glow);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Layout Dimensions */
+  --topbar-height: 64px;
+  --sidenav-width: 280px;
+  --content-max-width: 1400px;
+}

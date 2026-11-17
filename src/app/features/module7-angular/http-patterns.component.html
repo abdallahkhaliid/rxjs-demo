@@ -1,0 +1,433 @@
+<app-playground-wrapper
+  [title]="recipeData.title"
+  [subtitle]="recipeData.subtitle"
+  [category]="recipeData.category"
+  [difficulty]="recipeData.difficulty"
+  topicId="http-patterns"
+  [(activeTab)]="activeTab"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-pane concept-pane">
+    <div class="concept-card highlight-card">
+      <div class="card-header">
+        <h3>🚀 Production Angular HTTP Architecture</h3>
+      </div>
+      <p>{{ recipeData.description }}</p>
+      <div class="key-takeaways">
+        <div class="takeaway-item">
+          <span class="icon">📦</span>
+          <div>
+            <strong>shareReplay({{ '{' }} bufferSize: 1, refCount: true {{ '}' }}):</strong>
+            Prevents duplicate network requests across multiple subscribers while ensuring unsubscription tears down connection when zero active listeners remain (F39.1, F39.B3).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🛡️</span>
+          <div>
+            <strong>Exponential Backoff with 4xx Discrimination:</strong>
+            Retries transient 500/503 errors up to 3 times with progressive delays (500ms, 1000ms, 2000ms), but immediately re-throws 400/401/404 client errors without retry (F39.2, F39.B1, F39.B2).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🔄</span>
+          <div>
+            <strong>Manual Refresh Subject + switchMap:</strong>
+            Allows user-driven reload triggers while automatically cancelling pending in-flight requests if clicked rapidly (F39.4, F39.B5).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">⚡</span>
+          <div>
+            <strong>Parallel Aggregation:</strong>
+            Combines heterogeneous streams (course details + telemetry) into unified views using combineLatest/forkJoin (F39.5).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-pane code-pane">
+    <div class="code-subtabs">
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'caching'"
+        (click)="codeSubTab.set('caching')"
+        type="button"
+      >
+        Caching & shareReplay
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'retry'"
+        (click)="codeSubTab.set('retry')"
+        type="button"
+      >
+        Exponential Backoff Retry
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'refresh'"
+        (click)="codeSubTab.set('refresh')"
+        type="button"
+      >
+        Refresh Subject & switchMap
+      </button>
+    </div>
+
+    @if (codeSubTab() === 'caching') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['caching'].code"
+        [title]="recipeData.codeSnippets['caching'].title"
+        language="typescript"
+      />
+    }
+    @if (codeSubTab() === 'retry') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['retry'].code"
+        [title]="recipeData.codeSnippets['retry'].title"
+        language="typescript"
+      />
+    }
+    @if (codeSubTab() === 'refresh') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['refresh'].code"
+        [title]="recipeData.codeSnippets['refresh'].title"
+        language="typescript"
+      />
+    }
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-pane visual-pane">
+    <div class="simulator-grid">
+      <!-- Card A: shareReplay Caching -->
+      <div class="sim-card" data-testid="caching-card">
+        <div class="sim-card-header">
+          <div class="title-row">
+            <h4>📦 1. shareReplay Caching Visualizer</h4>
+            <span class="mode-pill" [class.enabled]="useCache()">
+              {{ useCache() ? 'shareReplay Active' : 'Uncached Direct' }}
+            </span>
+          </div>
+          <p class="card-desc">Compare duplicate network calls between uncached vs shareReplay cached observable streams.</p>
+        </div>
+
+        <div class="stats-ribbon">
+          <div class="stat-box" data-testid="stat-network-calls">
+            <span class="stat-label">Network Calls Dispatched</span>
+            <span class="stat-value highlight">{{ networkCallCount() }}</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Active Subscribers</span>
+            <span class="stat-value">{{ (sub1Active() ? 1 : 0) + (sub2Active() ? 1 : 0) }}</span>
+          </div>
+        </div>
+
+        <div class="controls-toolbar">
+          <button
+            class="btn btn-secondary"
+            (click)="toggleCaching()"
+            type="button"
+            data-testid="toggle-caching-btn"
+          >
+            {{ useCache() ? 'Disable Caching' : 'Enable shareReplay' }}
+          </button>
+          <button
+            class="btn btn-secondary"
+            (click)="invalidateCache()"
+            type="button"
+            data-testid="invalidate-cache-btn"
+          >
+            Invalidate Cache
+          </button>
+          <button
+            class="btn btn-secondary btn-outline"
+            (click)="resetNetworkStats()"
+            type="button"
+            data-testid="reset-caching-btn"
+          >
+            Reset
+          </button>
+        </div>
+
+        <div class="subscribers-dual-panel">
+          <!-- Subscriber 1 -->
+          <div class="sub-panel" [class.active]="sub1Active()">
+            <div class="sub-panel-header">
+              <span class="sub-title">Subscriber 1 (Component A)</span>
+              <span class="status-indicator" [class.online]="sub1Active()">
+                {{ sub1Active() ? 'Subscribed' : 'Idle' }}
+              </span>
+            </div>
+            <div class="sub-controls">
+              @if (!sub1Active()) {
+                <button
+                  class="btn btn-primary btn-sm"
+                  (click)="subscribeSub1()"
+                  type="button"
+                  data-testid="sub1-subscribe-btn"
+                >
+                  Subscribe Sub 1
+                </button>
+              } @else {
+                <button
+                  class="btn btn-danger btn-sm"
+                  (click)="unsubscribeSub1()"
+                  type="button"
+                  data-testid="sub1-unsubscribe-btn"
+                >
+                  Unsubscribe Sub 1
+                </button>
+              }
+            </div>
+            <div class="payload-box" data-testid="sub1-payload">
+              @if (sub1Data()) {
+                <div class="payload-title">{{ sub1Data().description }}</div>
+                <div class="payload-lessons">{{ sub1Data().lessons?.length || 0 }} lessons received</div>
+              } @else {
+                <span class="muted-text">No data received yet</span>
+              }
+            </div>
+          </div>
+
+          <!-- Subscriber 2 -->
+          <div class="sub-panel" [class.active]="sub2Active()">
+            <div class="sub-panel-header">
+              <span class="sub-title">Subscriber 2 (Component B)</span>
+              <span class="status-indicator" [class.online]="sub2Active()">
+                {{ sub2Active() ? 'Subscribed' : 'Idle' }}
+              </span>
+            </div>
+            <div class="sub-controls">
+              @if (!sub2Active()) {
+                <button
+                  class="btn btn-primary btn-sm"
+                  (click)="subscribeSub2()"
+                  type="button"
+                  data-testid="sub2-subscribe-btn"
+                >
+                  Subscribe Sub 2
+                </button>
+              } @else {
+                <button
+                  class="btn btn-danger btn-sm"
+                  (click)="unsubscribeSub2()"
+                  type="button"
+                  data-testid="sub2-unsubscribe-btn"
+                >
+                  Unsubscribe Sub 2
+                </button>
+              }
+            </div>
+            <div class="payload-box" data-testid="sub2-payload">
+              @if (sub2Data()) {
+                <div class="payload-title">{{ sub2Data().description }}</div>
+                <div class="payload-lessons">{{ sub2Data().lessons?.length || 0 }} lessons received</div>
+              } @else {
+                <span class="muted-text">No data received yet</span>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card B: Resilient Backoff Retry -->
+      <div class="sim-card" data-testid="retry-card">
+        <div class="sim-card-header">
+          <div class="title-row">
+            <h4>🛡️ 2. Resilient Exponential Backoff Retry</h4>
+          </div>
+          <p class="card-desc">Simulates network faults with 4xx discrimination (F39.B1) and transient 500 retries (F39.2, F39.B2).</p>
+        </div>
+
+        <div class="form-row-compact">
+          <div class="form-group">
+            <label>Failure Rate: {{ (failureRate() * 100).toFixed(0) }}%</label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              [(ngModel)]="failureRate"
+              [disabled]="isRetrying()"
+              data-testid="retry-rate-slider"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Simulated Status Code</label>
+            <select [(ngModel)]="simulatedStatusCode" [disabled]="isRetrying()" data-testid="retry-status-select">
+              <option [ngValue]="500">500 Server Error (Transient - Retries)</option>
+              <option [ngValue]="404">404 Not Found (Client - NO Retry!)</option>
+              <option [ngValue]="401">401 Unauthorized (Client - NO Retry!)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Max Retries</label>
+            <input
+              type="number"
+              min="1"
+              max="5"
+              [(ngModel)]="maxRetries"
+              [disabled]="isRetrying()"
+              data-testid="retry-max-input"
+            />
+          </div>
+        </div>
+
+        <div class="controls-toolbar">
+          <button
+            class="btn btn-primary"
+            (click)="triggerResilientFetch()"
+            [disabled]="isRetrying()"
+            type="button"
+            data-testid="trigger-retry-btn"
+          >
+            {{ isRetrying() ? '⏳ Retrying in Progress...' : '🚀 Trigger Resilient Fetch' }}
+          </button>
+        </div>
+
+        <!-- Live Retry Attempt Timeline -->
+        <div class="retry-timeline-container" data-testid="retry-timeline">
+          @if (retryLogs().length > 0) {
+            <div class="timeline-steps">
+              @for (log of retryLogs(); track log.attempt + '-' + $index) {
+                <div class="timeline-step" [class]="log.status">
+                  <div class="step-badge">{{ log.attempt }}</div>
+                  <div class="step-info">
+                    <span class="step-name">Attempt {{ log.attempt }}</span>
+                    <span class="step-status">{{ log.status | uppercase }}</span>
+                    @if (log.statusCode) {
+                      <span class="step-code">HTTP {{ log.statusCode }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-timeline-hint">Click "Trigger Resilient Fetch" to observe backoff retry attempts</div>
+          }
+
+          @if (retryResult()) {
+            <div
+              class="retry-result-banner"
+              [class.success]="!retryResult().fallback && !retryResult().error"
+              [class.fallback]="retryResult().fallback"
+              [class.error]="retryResult().error && !retryResult().fallback"
+              data-testid="retry-result-banner"
+            >
+              @if (retryResult().fallback) {
+                <span>🛡️ Recovered via Fallback Payload (Unrecoverable error handled gracefully)</span>
+              } @else if (retryResult().error) {
+                <span>🚫 Client Error 4xx Detected: Immediately rejected without retrying</span>
+              } @else {
+                <span>✅ HTTP 200 OK: Request succeeded after backoff retry!</span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Card C: Rapid Refresh switchMap -->
+      <div class="sim-card" data-testid="refresh-card">
+        <div class="sim-card-header">
+          <div class="title-row">
+            <h4>🔄 3. Rapid Refresh & switchMap Cancellation</h4>
+          </div>
+          <p class="card-desc">Rapid manual clicks trigger refresh through switchMap, automatically cancelling prior pending calls (F39.4, F39.B5).</p>
+        </div>
+
+        <div class="stats-ribbon">
+          <div class="stat-box">
+            <span class="stat-label">Refresh Clicks Triggered</span>
+            <span class="stat-value">{{ refreshClicksCount() }}</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Server Responses Completed</span>
+            <span class="stat-value highlight">{{ refreshResolvedCount() }}</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">In-Flight Cancelled</span>
+            <span class="stat-value">
+              {{ refreshClicksCount() > refreshResolvedCount() ? refreshClicksCount() - refreshResolvedCount() : 0 }}
+            </span>
+          </div>
+        </div>
+
+        <div class="controls-toolbar">
+          <button
+            class="btn btn-primary"
+            (click)="triggerRefresh()"
+            type="button"
+            data-testid="rapid-refresh-btn"
+          >
+            🔄 Trigger Refresh Now
+          </button>
+        </div>
+
+        @if (latestRefreshedCourse()) {
+          <div class="refresh-preview" data-testid="refresh-preview">
+            <strong>Active Stream Payload:</strong> {{ latestRefreshedCourse().description }}
+          </div>
+        }
+      </div>
+
+      <!-- Card D: Parallel Aggregation -->
+      <div class="sim-card" data-testid="parallel-card">
+        <div class="sim-card-header">
+          <div class="title-row">
+            <h4>⚡ 4. Parallel Request Aggregation (combineLatest)</h4>
+          </div>
+          <p class="card-desc">Forks parallel requests for course data and telemetry, combining into an aggregated view model (F39.5).</p>
+        </div>
+
+        <div class="controls-toolbar">
+          <button
+            class="btn btn-primary"
+            (click)="triggerParallelAggregation()"
+            [disabled]="isAggregating()"
+            type="button"
+            data-testid="parallel-fetch-btn"
+          >
+            {{ isAggregating() ? '⏳ Aggregating Streams...' : '⚡ Fetch Parallel View' }}
+          </button>
+        </div>
+
+        @if (aggregatedData()) {
+          <div class="aggregated-box" data-testid="aggregated-payload">
+            <div class="agg-col">
+              <strong>Course Stream:</strong>
+              <div>{{ aggregatedData().course.description }} ({{ aggregatedData().course.category }})</div>
+            </div>
+            <div class="agg-col">
+              <strong>Telemetry Stream:</strong>
+              <div>{{ aggregatedData().slowData.endpoint }} (Elapsed: {{ aggregatedData().slowData.elapsedMs }}ms)</div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Live Output Console -->
+    <div class="console-section">
+      <app-output-console
+        title="HTTP Patterns Live Output"
+        [entries]="consoleEntries()"
+        (clear)="clearConsole()"
+      />
+    </div>
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-pane comparison-pane">
+    <app-comparison-table [data]="comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-pane quiz-pane">
+    <app-quiz-block [questions]="quizzes" topicId="http-patterns" />
+  </div>
+</app-playground-wrapper>

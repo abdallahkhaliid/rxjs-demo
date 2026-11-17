@@ -1,0 +1,15 @@
+--- a/src/app/features/module7-angular/reactive-forms.component.ts
++++ b/src/app/features/module7-angular/reactive-forms.component.ts
+@@ -6,2 +6,2 @@
+-import { Subject, of } from 'rxjs';
+-import { debounceTime, distinctUntilChanged, filter, switchMap, tap, catchError, map, startWith } from 'rxjs/operators';
++import { Subject, of, timer } from 'rxjs';
++import { debounce, distinctUntilChanged, filter, switchMap, tap, catchError, map, startWith } from 'rxjs/operators';
+@@ -132,6 +132,2 @@
+       // Dynamic debounce duration
+-      switchMap(formVal =>
+-        of(formVal).pipe(
+-          debounceTime(this.debounceDurationMs())
+-        )
+-      ),
++      debounce(() => timer(this.debounceDurationMs())),

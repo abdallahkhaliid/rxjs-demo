@@ -1,0 +1,42 @@
+.breadcrumbs-nav {
+  padding: var(--space-2) 0 var(--space-4);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+
+  .breadcrumbs-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    list-style: none;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+
+    .breadcrumb-item {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+
+      .breadcrumb-link {
+        color: var(--color-text-secondary);
+        transition: color var(--transition-fast);
+
+        &:hover {
+          color: var(--color-primary-400);
+          text-decoration: underline;
+        }
+      }
+
+      .breadcrumb-separator {
+        color: var(--color-text-muted);
+        opacity: 0.6;
+        user-select: none;
+      }
+
+      .breadcrumb-current {
+        color: var(--color-text-primary);
+        font-weight: var(--font-weight-medium);
+      }
+    }
+  }
+}

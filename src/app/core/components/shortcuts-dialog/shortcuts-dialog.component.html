@@ -1,0 +1,67 @@
+@if (navService.isHelpOpen()) {
+  <div class="shortcuts-backdrop" (click)="close()">
+    <div
+      class="shortcuts-dialog card"
+      (click)="$event.stopPropagation()"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard Shortcuts"
+    >
+      <div class="shortcuts-header">
+        <div class="header-title">
+          <span class="icon">⌨️</span>
+          <h3>Keyboard Shortcuts</h3>
+        </div>
+        <button class="btn-ghost btn-sm close-btn" (click)="close()" type="button" aria-label="Close shortcuts dialog">
+          ✕
+        </button>
+      </div>
+
+      <div class="shortcuts-body">
+        <div class="shortcuts-section">
+          <h4>Navigation</h4>
+          <div class="shortcut-row">
+            <span class="action-desc">Next topic in curriculum</span>
+            <div class="key-combo"><kbd>j</kbd> <span>or</span> <kbd>→</kbd></div>
+          </div>
+          <div class="shortcut-row">
+            <span class="action-desc">Previous topic in curriculum</span>
+            <div class="key-combo"><kbd>k</kbd> <span>or</span> <kbd>←</kbd></div>
+          </div>
+          <div class="shortcut-row">
+            <span class="action-desc">Switch playground tabs</span>
+            <div class="key-combo"><kbd>Alt</kbd> + <kbd>→</kbd> / <kbd>←</kbd></div>
+          </div>
+        </div>
+
+        <div class="shortcuts-section">
+          <h4>Global & Search</h4>
+          <div class="shortcut-row">
+            <span class="action-desc">Open command palette / search</span>
+            <div class="key-combo"><kbd>Ctrl</kbd> + <kbd>K</kbd> <span>or</span> <kbd>/</kbd></div>
+          </div>
+          <div class="shortcut-row">
+            <span class="action-desc">Toggle keyboard shortcuts help</span>
+            <div class="key-combo"><kbd>?</kbd></div>
+          </div>
+          <div class="shortcut-row">
+            <span class="action-desc">Close dialog / search / modal</span>
+            <div class="key-combo"><kbd>Esc</kbd></div>
+          </div>
+        </div>
+
+        <div class="shortcuts-section">
+          <h4>Interactive Demos</h4>
+          <div class="shortcut-row">
+            <span class="action-desc">Trigger playground execution</span>
+            <div class="key-combo"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="shortcuts-footer">
+        <span class="footer-hint">Shortcuts are automatically disabled when typing in inputs or code editors.</span>
+      </div>
+    </div>
+  </div>
+}

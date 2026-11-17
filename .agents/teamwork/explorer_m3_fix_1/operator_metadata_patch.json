@@ -1,0 +1,873 @@
+{
+  "transformation": {
+    "map": {
+      "useCases": [
+        "Transforming HTTP response payloads into typed domain view models (e.g. res => res.data)",
+        "Formatting raw numbers or dates for UI presentation (e.g. currency formatting, date strings)",
+        "Mapping user interaction coordinates (e.g. MouseEvent to { x, y } offset points)"
+      ],
+      "pitfalls": [
+        "Do not return an Observable from map(); that yields Observable<Observable<T>> (use switchMap, mergeMap, or concatMap instead)",
+        "Avoid side effects inside projection functions; use tap() for logging or dispatching actions"
+      ],
+      "relatedOperators": ["mapTo", "pluck", "scan", "switchMap"],
+      "docUrl": "https://rxjs.dev/api/operators/map"
+    },
+    "mapTo": {
+      "isDeprecated": true,
+      "deprecationNotice": "Deprecated in RxJS 7 in favor of map(() => value).",
+      "modernAlternative": "map(() => value)",
+      "useCases": [
+        "Mapping button click events to a static boolean flag or action type constant",
+        "Ignoring source notification payloads when only the event occurrence matters (e.g. interval tick to 'REFRESH')"
+      ],
+      "pitfalls": [
+        "Deprecated in RxJS 7; use map(() => value) which improves tree-shaking and eliminates runtime overhead",
+        "If emitting an object or array reference, all subscribers share the exact same reference; use map(() => ({ ... })) for unique instances"
+      ],
+      "relatedOperators": ["map", "startWith"],
+      "docUrl": "https://rxjs.dev/api/operators/mapTo"
+    },
+    "pluck": {
+      "isDeprecated": true,
+      "deprecationNotice": "Deprecated in RxJS 7 in favor of map(x => x?.prop) with optional chaining for compile-time type safety.",
+      "modernAlternative": "map(x => x?.prop)",
+      "useCases": [
+        "Extracting a single nested property value from structured API response objects",
+        "Navigating nested object hierarchies in legacy RxJS 6 applications"
+      ],
+      "pitfalls": [
+        "Deprecated in RxJS 7. Pluck uses untyped string paths which break TypeScript type checking; use map(x => x?.prop) instead",
+        "Accessing non-existent properties on null or undefined objects can cause runtime errors in older environments"
+      ],
+      "relatedOperators": ["map", "distinctUntilKeyChanged"],
+      "docUrl": "https://rxjs.dev/api/operators/pluck"
+    },
+    "scan": {
+      "useCases": [
+        "Managing stateful accumulation over stream items such as a running shopping cart total or game score",
+        "Implementing Redux-style state reducers (acc, curr) => newState purely within RxJS pipelines",
+        "Buffering a running history of previous values without completing the stream"
+      ],
+      "pitfalls": [
+        "Scan emits intermediate accumulator values on every item; if you only want the final accumulated value upon stream completion, use reduce() instead",
+        "Always provide an explicit seed value when the accumulator type differs from the source emission type to avoid unexpected type coercion"
+      ],
+      "relatedOperators": ["reduce", "pairwise", "toArray"],
+      "docUrl": "https://rxjs.dev/api/operators/scan"
+    },
+    "reduce": {
+      "useCases": [
+        "Summing, averaging, or aggregating an entire finite stream series once the source completes",
+        "Calculating total transferred byte count or payload checksum from a completed chunked stream",
+        "Building an aggregated summary report from a finite batch of emitted telemetry items"
+      ],
+      "pitfalls": [
+        "Reduce will NEVER emit a value if the source Observable is infinite (e.g. interval() or DOM events); the source MUST complete",
+        "If the source completes without emitting any items and no seed was provided, reduce emits an EmptyError"
+      ],
+      "relatedOperators": ["scan", "toArray"],
+      "docUrl": "https://rxjs.dev/api/operators/reduce"
+    },
+    "toArray": {
+      "useCases": [
+        "Collecting all emitted items of a completed stream into a single JavaScript array",
+        "Converting streaming or paginated API results into an array for legacy chart or table components",
+        "Simplifying unit tests by capturing all stream emissions into a single assertion array"
+      ],
+      "pitfalls": [
+        "toArray will never emit anything if the source Observable never completes",
+        "Collecting massive or unbounded streams into an array can consume large amounts of memory and risk out-of-memory crashes"
+      ],
+      "relatedOperators": ["reduce", "bufferTime", "scan"],
+      "docUrl": "https://rxjs.dev/api/operators/toArray"
+    },
+    "buffer": {
+      "useCases": [
+        "Batching incoming telemetry logs or socket messages until a flush notifier fires",
+        "Grouping user keystrokes or mouse clicks during an active recording window triggered by user actions",
+        "Collecting incoming data packets until a timer or network idle signal indicates readiness"
+      ],
+      "pitfalls": [
+        "If the closing notifier emits before the source emits any values, buffer emits an empty array `[]`",
+        "If the closing notifier never emits, buffered items remain stored in memory indefinitely until source completion or unsubscription"
+      ],
+      "relatedOperators": ["bufferCount", "bufferTime", "window"],
+      "docUrl": "https://rxjs.dev/api/operators/buffer"
+    },
+    "bufferCount": {
+      "useCases": [
+        "Batching database insert operations or HTTP bulk uploads into chunks of size N (e.g. 50 records per request)",
+        "Implementing pagination or chunked grid rendering from a streaming datasource",
+        "Creating overlapping sliding windows of items using the startBufferEvery parameter"
+      ],
+      "pitfalls": [
+        "Upon stream completion, any remaining uncompleted buffer with fewer than bufferSize items is emitted; handle partial arrays downstream if necessary",
+        "Setting startBufferEvery smaller than bufferSize creates overlapping buffers that duplicate emissions across multiple arrays"
+      ],
+      "relatedOperators": ["buffer", "bufferTime", "pairwise"],
+      "docUrl": "https://rxjs.dev/api/operators/bufferCount"
+    },
+    "bufferTime": {
+      "useCases": [
+        "Throttling high-frequency analytics events or click coordinates by sending batches to the server every 2 seconds",
+        "Batching high-throughput WebSocket messages into periodic UI render frames to prevent browser lag",
+        "Aggregating typing characters in burst intervals for chat activity indicators"
+      ],
+      "pitfalls": [
+        "Emits an empty array `[]` every interval if no source events occurred during that time window; filter out empty arrays using filter(arr => arr.length > 0) if needed",
+        "Setting maxBufferSize in conjunction with bufferTimeSpan can cause buffers to emit earlier than the interval if the count cap is reached"
+      ],
+      "relatedOperators": ["bufferCount", "throttleTime", "debounceTime"],
+      "docUrl": "https://rxjs.dev/api/operators/bufferTime"
+    },
+    "bufferToggle": {
+      "useCases": [
+        "Collecting drag-and-drop mouse movements strictly while mouse button is held down (openings on mousedown, closings on mouseup)",
+        "Buffering chat messages only while the user is actively viewing a specific modal dialog or recording session",
+        "Capturing incoming audio samples while a 'push-to-talk' key is pressed"
+      ],
+      "pitfalls": [
+        "Every opening notification spawns a separate closing Observable; multiple simultaneous open windows will duplicate emissions into multiple buffers",
+        "If the closing selector throws an error or never emits, the buffer will continue accumulating in memory without flushing"
+      ],
+      "relatedOperators": ["bufferWhen", "buffer", "windowToggle"],
+      "docUrl": "https://rxjs.dev/api/operators/bufferToggle"
+    },
+    "bufferWhen": {
+      "useCases": [
+        "Buffering sensor data where the batch interval duration varies dynamically depending on network load or battery state",
+        "Flushing cached requests when a dynamic retry backoff timer expires",
+        "Batching financial transactions with dynamic timeout windows determined by market volatility"
+      ],
+      "pitfalls": [
+        "The closing selector function is invoked immediately upon buffer initialization and again immediately after every flush; ensure the closing Observable actually emits or completes",
+        "Returning EMPTY from the closing selector causes the buffer to complete immediately"
+      ],
+      "relatedOperators": ["bufferToggle", "buffer", "windowWhen"],
+      "docUrl": "https://rxjs.dev/api/operators/bufferWhen"
+    },
+    "window": {
+      "useCases": [
+        "Splitting a continuous stream into nested Observables based on boundary notifier emissions",
+        "Processing subgroups of stream emissions with dedicated downstream pipeline operators (like take, scan) per window",
+        "Subscribing to and canceling inner stream processors dynamically without tearing down the parent source"
+      ],
+      "pitfalls": [
+        "Window emits nested Observables (Observable<Observable<T>>), not arrays; you must subscribe or flatten each inner window (e.g. via mergeAll, concatMap)",
+        "Failing to subscribe to an emitted inner window before the next window opens may cause dropped emissions"
+      ],
+      "relatedOperators": ["buffer", "windowCount", "windowTime"],
+      "docUrl": "https://rxjs.dev/api/operators/window"
+    },
+    "windowCount": {
+      "useCases": [
+        "Partitioning a sequence of items into nested streams of exact count N for independent downstream processing",
+        "Creating sliding windows of nested Observables to run localized statistical calculations across sliding sequences",
+        "Routing batches of jobs to separate worker threads in chunks of N"
+      ],
+      "pitfalls": [
+        "Each window must be handled downstream; if inner Observables are not flattened or subscribed, memory leaks can occur",
+        "Inner windows complete when their count is reached, which triggers completion callbacks on any subscribed inner pipelines"
+      ],
+      "relatedOperators": ["bufferCount", "window", "windowTime"],
+      "docUrl": "https://rxjs.dev/api/operators/windowCount"
+    },
+    "windowTime": {
+      "useCases": [
+        "Segmenting a 24/7 telemetry feed into 1-minute nested Observable windows for time-bucketed aggregation",
+        "Sampling user interactions into rolling time slices to calculate moving averages without collecting giant arrays",
+        "Implementing time-based rate limiters with rolling time windows"
+      ],
+      "pitfalls": [
+        "Inner windows emit at each time interval even if the source was completely silent, emitting empty nested Observables",
+        "Unsubscribed inner windows will continue their timer lifecycles unless properly unsubscribed or merged"
+      ],
+      "relatedOperators": ["bufferTime", "window", "windowToggle"],
+      "docUrl": "https://rxjs.dev/api/operators/windowTime"
+    },
+    "windowToggle": {
+      "useCases": [
+        "Opening a nested processing stream only when user enters a specific application mode and closing it on exit",
+        "Streaming audio or video frames into an encoder Observable strictly between recording start and stop signals",
+        "Monitoring server metrics only during scheduled high-traffic operational windows"
+      ],
+      "pitfalls": [
+        "If multiple opening emissions occur before previous closings, multiple concurrent inner Observables will be active simultaneously",
+        "Closing selectors that fail to emit will cause inner windows to stay open indefinitely"
+      ],
+      "relatedOperators": ["bufferToggle", "windowWhen", "window"],
+      "docUrl": "https://rxjs.dev/api/operators/windowToggle"
+    },
+    "windowWhen": {
+      "useCases": [
+        "Partitioning a continuous stream with dynamically calculated time spans based on payload volume or system load",
+        "Splitting event logs into dynamic windows where each window duration is determined by previous emission attributes",
+        "Creating dynamic sliding analysis windows for financial ticker analysis"
+      ],
+      "pitfalls": [
+        "The closing selector is invoked immediately when each window starts; if the selector emits synchronously, windows will open and close instantaneously in a rapid loop",
+        "Inner Observables must be consumed downstream to avoid unhandled emissions"
+      ],
+      "relatedOperators": ["bufferWhen", "windowToggle", "window"],
+      "docUrl": "https://rxjs.dev/api/operators/windowWhen"
+    },
+    "pairwise": {
+      "useCases": [
+        "Comparing consecutive values to determine direction of change (e.g. stock price rising or falling: [prev, curr])",
+        "Calculating delta coordinates or velocity from consecutive mouse/touch movements (curr.x - prev.x)",
+        "Detecting navigation transitions in single-page applications ([previousRoute, currentRoute])"
+      ],
+      "pitfalls": [
+        "Pairwise will NOT emit anything until the source has emitted at least TWO values; a single-item stream will complete with 0 emissions",
+        "If the source emits only once and completes, downstream subscribers will receive no notifications without error"
+      ],
+      "relatedOperators": ["scan", "bufferCount", "distinctUntilChanged"],
+      "docUrl": "https://rxjs.dev/api/operators/pairwise"
+    },
+    "groupBy": {
+      "useCases": [
+        "Partitioning a mixed stream of user events by event type (e.g. 'click', 'scroll', 'keypress') into separate sub-streams",
+        "Routing WebSocket messages to dedicated per-user or per-channel handlers based on a message channel ID",
+        "Segmenting server logs by severity level ('INFO', 'WARN', 'ERROR') for segregated alerting pipelines"
+      ],
+      "pitfalls": [
+        "By default, group Observables never complete unless the main source completes; unbounded grouping keys can lead to memory leaks if durationSelector is omitted",
+        "Each group is a GroupedObservable; you must flatten them (e.g. using mergeMap(group$ => group$.pipe(...))) to consume items"
+      ],
+      "relatedOperators": ["filter", "buffer", "scan"],
+      "docUrl": "https://rxjs.dev/api/operators/groupBy"
+    }
+  },
+  "filtering": {
+    "filter": {
+      "useCases": [
+        "Discarding invalid form values, null/undefined payloads, or unauthorized HTTP events",
+        "Restricting keyboard shortcuts to specific keys (e.g. event => event.key === 'Enter')",
+        "Routing data through conditional UI layers based on user role or permission flags"
+      ],
+      "pitfalls": [
+        "Filter does not complete the stream when a predicate returns false; it merely drops non-matching items. Use takeWhile() to complete the stream upon failing predicate",
+        "Ensure the predicate is pure; running side effects inside filter predicates leads to unpredictable state bugs"
+      ],
+      "relatedOperators": ["takeWhile", "skipWhile", "distinct"],
+      "docUrl": "https://rxjs.dev/api/operators/filter"
+    },
+    "take": {
+      "useCases": [
+        "Fetching an initial snapshot of data from a long-lived Observable (e.g. take(1) to read current user state once)",
+        "Limiting search results or auto-suggest recommendations to top N matches",
+        "Preventing memory leaks by automatically unsubscribing after a single HTTP or Signal emission"
+      ],
+      "pitfalls": [
+        "take(N) immediately completes the Observable as soon as N values are emitted, which triggers teardown logic upstream",
+        "take(0) completes immediately and synchronously without emitting any values"
+      ],
+      "relatedOperators": ["takeUntil", "takeWhile", "first"],
+      "docUrl": "https://rxjs.dev/api/operators/take"
+    },
+    "takeLast": {
+      "useCases": [
+        "Retrieving the final N items of a finite sequence (e.g. last 3 search queries before session end)",
+        "Getting the tail lines of a completed log stream or terminal output",
+        "Checking the final ending state transitions of an animation sequence"
+      ],
+      "pitfalls": [
+        "takeLast will NEVER emit anything until the source completes; on infinite streams (like interval() or DOM clicks), it will never emit",
+        "Emissions from takeLast arrive in rapid synchronous succession upon source completion, not at their original emission times"
+      ],
+      "relatedOperators": ["take", "skipLast", "reduce"],
+      "docUrl": "https://rxjs.dev/api/operators/takeLast"
+    },
+    "takeUntil": {
+      "useCases": [
+        "Unsubscribing from component streams when an Angular component destroys (takeUntil(this.destroy$))",
+        "Canceling active background polling or file downloads when a user clicks 'Cancel' or navigates away",
+        "Managing drag gestures by listening to mousemove until mouseup emits (mousemove$.pipe(takeUntil(mouseup$)))"
+      ],
+      "pitfalls": [
+        "Place takeUntil as the LAST operator in your pipe() chain so that teardown cleanups in preceding operators execute properly",
+        "The notifier MUST emit a next notification (not just complete) to trigger unsubscription in standard RxJS 7"
+      ],
+      "relatedOperators": ["takeWhile", "skipUntil", "take"],
+      "docUrl": "https://rxjs.dev/api/operators/takeUntil"
+    },
+    "takeWhile": {
+      "useCases": [
+        "Streaming game tick events while player health remains above 0 (takeWhile(hp => hp > 0))",
+        "Polling server job status until status changes from 'PENDING' to 'COMPLETED'",
+        "Reading values from a paginated API stream while page.hasMore === true"
+      ],
+      "pitfalls": [
+        "By default, takeWhile drops the value that failed the predicate; use the inclusive flag takeWhile(predicate, true) if you need the terminating item emitted",
+        "Once the predicate returns false, takeWhile completes the stream; it will never resume even if subsequent source emissions would satisfy the predicate"
+      ],
+      "relatedOperators": ["filter", "takeUntil", "skipWhile"],
+      "docUrl": "https://rxjs.dev/api/operators/takeWhile"
+    },
+    "skip": {
+      "useCases": [
+        "Ignoring the initial default or placeholder value emitted by a BehaviorSubject or form control",
+        "Skipping table header rows when parsing CSV or streaming file lines",
+        "Bypassing the initial setup event of a sensor or hardware stream"
+      ],
+      "pitfalls": [
+        "If the source emits fewer than N items in total before completing, skip will complete with zero emissions",
+        "Negative skip counts throw an ArgumentOutOfRangeError in strict RxJS runtimes"
+      ],
+      "relatedOperators": ["take", "skipUntil", "skipWhile"],
+      "docUrl": "https://rxjs.dev/api/operators/skip"
+    },
+    "skipLast": {
+      "useCases": [
+        "Ignoring trailing footer rows or EOF marker emissions from a completed data stream",
+        "Omitting the last N historical records when preparing a trailing data comparison",
+        "Discarding trailing debounce artifacts upon batch process termination"
+      ],
+      "pitfalls": [
+        "skipLast introduces an internal queue delay: it cannot emit item X until N subsequent items have arrived from the source",
+        "On infinite streams, items are delayed by N emissions; on finite streams with fewer than N items, nothing is ever emitted"
+      ],
+      "relatedOperators": ["takeLast", "skip", "take"],
+      "docUrl": "https://rxjs.dev/api/operators/skipLast"
+    },
+    "skipUntil": {
+      "useCases": [
+        "Suppressing telemetry or user interaction streams until application initialization or authentication completes",
+        "Ignoring mousemove coordinates until a mousedown event initiates a dragging operation",
+        "Delaying chart updates until initial 3D canvas rendering is fully ready"
+      ],
+      "pitfalls": [
+        "All source values emitted before the notifier emits are permanently discarded",
+        "If the notifier Observable completes without emitting a next value, skipUntil will discard ALL source values for the stream's entire lifetime"
+      ],
+      "relatedOperators": ["takeUntil", "skip", "skipWhile"],
+      "docUrl": "https://rxjs.dev/api/operators/skipUntil"
+    },
+    "skipWhile": {
+      "useCases": [
+        "Ignoring sensor readings while temperature is below an operating threshold, then recording all subsequent data",
+        "Bypassing pre-roll or loading frames until the stream payload signals the start of actual content",
+        "Ignoring initial zero-value or uncalibrated readings from IoT devices"
+      ],
+      "pitfalls": [
+        "Once the predicate returns false for the first time, skipWhile mirrors ALL subsequent items without ever checking the predicate again",
+        "If the predicate is always true, no items will ever be emitted even if thousands of source events occur"
+      ],
+      "relatedOperators": ["takeWhile", "filter", "skipUntil"],
+      "docUrl": "https://rxjs.dev/api/operators/skipWhile"
+    },
+    "distinct": {
+      "useCases": [
+        "Filtering out duplicate search queries or unique user IDs across an entire user session",
+        "Extracting unique tags or categories from a streaming catalog feed",
+        "Ensuring each analytics event ID is processed exactly once"
+      ],
+      "pitfalls": [
+        "Distinct maintains an internal Set of all past emissions for the lifetime of the stream; in long-running streams with unbounded unique values, this causes memory leaks",
+        "Use the optional flushes Observable parameter to periodically clear the internal Set if used in long-lived applications"
+      ],
+      "relatedOperators": ["distinctUntilChanged", "distinctUntilKeyChanged", "filter"],
+      "docUrl": "https://rxjs.dev/api/operators/distinct"
+    },
+    "distinctUntilChanged": {
+      "useCases": [
+        "Suppressing redundant HTTP search requests when input text has not actually changed",
+        "Preventing unnecessary Angular component re-renders when a reactive store state property remains identical",
+        "Filtering out duplicate consecutive GPS coordinate updates when stationary"
+      ],
+      "pitfalls": [
+        "Uses triple-equals (===) by default, so object literals { id: 1 } with identical content but different references are NOT considered duplicates; provide a custom comparator",
+        "Only suppresses CONSECUTIVE duplicates; if value A is followed by B then A again, the second A WILL emit"
+      ],
+      "relatedOperators": ["distinct", "distinctUntilKeyChanged", "debounceTime"],
+      "docUrl": "https://rxjs.dev/api/operators/distinctUntilChanged"
+    },
+    "distinctUntilKeyChanged": {
+      "useCases": [
+        "Suppressing consecutive object emissions where a primary key (e.g. user.id or item.status) has not changed",
+        "Ignoring UI state emissions when only irrelevant background flags changed while the active route ID stayed identical",
+        "Filtering audio track change events when track ID remains identical"
+      ],
+      "pitfalls": [
+        "Like distinctUntilChanged, it only compares the immediate previous emission with the current one, not the full history",
+        "Throws a runtime TypeError if an emitted item is null or undefined; use filter(Boolean) before this operator"
+      ],
+      "relatedOperators": ["distinctUntilChanged", "pluck", "filter"],
+      "docUrl": "https://rxjs.dev/api/operators/distinctUntilKeyChanged"
+    },
+    "debounce": {
+      "useCases": [
+        "Debouncing search inputs where the wait duration is dynamic (e.g. shorter pause for fast typers, longer for complex searches)",
+        "Suppressing window resize recalculations with dynamic delay based on current CPU workload",
+        "Buffering user scroll events with a duration determined by an auxiliary animation stream"
+      ],
+      "pitfalls": [
+        "The duration selector function must return an Observable or Promise; if it returns a primitive, a runtime error occurs",
+        "If source completes before the duration selector emits, the pending item is emitted immediately upon completion"
+      ],
+      "relatedOperators": ["debounceTime", "throttle", "audit"],
+      "docUrl": "https://rxjs.dev/api/operators/debounce"
+    },
+    "debounceTime": {
+      "useCases": [
+        "Waiting for user to pause typing in a search input (e.g. 300ms) before triggering an API autocomplete request",
+        "Preventing double-click accidental duplicate form submissions",
+        "Rate-limiting window resize or scroll recalculations to run only after movement stops"
+      ],
+      "pitfalls": [
+        "DebounceTime discards all intermediate values during the quiet window, emitting only the latest value once the window expires",
+        "If events arrive continuously without any pause greater than the specified duration, debounceTime will NEVER emit until source completion"
+      ],
+      "relatedOperators": ["debounce", "throttleTime", "auditTime"],
+      "docUrl": "https://rxjs.dev/api/operators/debounceTime"
+    },
+    "throttle": {
+      "useCases": [
+        "Emitting the first click immediately to trigger UI feedback, then ignoring subsequent clicks while a dynamic promise or lock Observable resolves",
+        "Throttling network sync requests with dynamic cool-down periods governed by server response headers",
+        "Rate-limiting game fire actions based on weapon cool-down timers"
+      ],
+      "pitfalls": [
+        "By default { leading: true, trailing: false }, so any emissions occurring during the throttle window are silently discarded",
+        "Configure { leading: true, trailing: true } if you need the final trailing emission delivered after the cool-down expires"
+      ],
+      "relatedOperators": ["throttleTime", "debounce", "audit"],
+      "docUrl": "https://rxjs.dev/api/operators/throttle"
+    },
+    "throttleTime": {
+      "useCases": [
+        "Limiting button clicks to at most once per 1000ms while guaranteeing immediate first-click execution",
+        "Sampling high-frequency scroll or mousemove events at 60 FPS (approx. 16ms intervals)",
+        "Rate-limiting API telemetry pings to a maximum rate (e.g. 1 per second)"
+      ],
+      "pitfalls": [
+        "Defaults to { leading: true, trailing: false }; if the user makes a final edit during the silence window, that final value will be lost unless trailing: true is passed",
+        "Does not delay the initial emission (unlike debounceTime), making it unsuitable for search autocomplete where you want to wait for typing to stop"
+      ],
+      "relatedOperators": ["throttle", "debounceTime", "auditTime"],
+      "docUrl": "https://rxjs.dev/api/operators/throttleTime"
+    },
+    "audit": {
+      "useCases": [
+        "Sampling the most recent sensor reading when an external hardware strobe or clock pulse fires",
+        "Capturing the final scroll position within dynamic animation frame duration selector windows",
+        "Recording the most recent cursor position before a canvas snapshot trigger"
+      ],
+      "pitfalls": [
+        "Unlike throttle, audit NEVER emits on the leading edge; it silences output until the duration Observable emits, then emits the most recent value",
+        "If the source completes while an audit window is active, the pending value is dropped and never emitted"
+      ],
+      "relatedOperators": ["auditTime", "throttle", "sample"],
+      "docUrl": "https://rxjs.dev/api/operators/audit"
+    },
+    "auditTime": {
+      "useCases": [
+        "Ignoring burst emissions and emitting only the latest value after a fixed duration (e.g. sampling window resize dimensions every 200ms)",
+        "Updating a real-time price dashboard with the latest ticker price every 500ms without queuing stale updates",
+        "Capturing the latest scroll position at periodic intervals during continuous scrolling"
+      ],
+      "pitfalls": [
+        "AuditTime does NOT emit immediately on the first event; it always waits for the timer duration to expire before emitting",
+        "If the source Observable completes during the wait window, the pending value will NOT be emitted"
+      ],
+      "relatedOperators": ["audit", "throttleTime", "debounceTime"],
+      "docUrl": "https://rxjs.dev/api/operators/auditTime"
+    },
+    "sample": {
+      "useCases": [
+        "Sampling the current state of a form or game character whenever a periodic 1-second pulse or 'Save' button is clicked",
+        "Reading the current temperature reading exactly when a camera shutter trigger fires",
+        "Recording telemetry data points synchronized to a master clock stream"
+      ],
+      "pitfalls": [
+        "Sample will NOT emit if the source has not emitted any new values since the last notifier emission (no duplicate sampling)",
+        "Values emitted by the source between sample ticks are discarded; only the most recent value is kept"
+      ],
+      "relatedOperators": ["audit", "withLatestFrom", "debounce"],
+      "docUrl": "https://rxjs.dev/api/operators/sample"
+    }
+  },
+  "combination": {
+    "combineLatest": {
+      "useCases": [
+        "Combining multiple form input filters (e.g. search text, category dropdown, price slider) to compute filtered product results",
+        "Evaluating authentication state and route permissions simultaneously to decide redirect destinations",
+        "Calculating total order cost by combining item price stream with live currency exchange rate stream"
+      ],
+      "pitfalls": [
+        "combineLatest will NOT emit a single value until EVERY input Observable has emitted at least once; if one stream never emits, output remains silent forever",
+        "Can suffer from 'glitches' (brief transient states) if multiple input streams update synchronously from the same root source"
+      ],
+      "relatedOperators": ["forkJoin", "withLatestFrom", "zip"],
+      "docUrl": "https://rxjs.dev/api/operators/combineLatest"
+    },
+    "concat": {
+      "useCases": [
+        "Executing sequential operations in strict serial order (e.g. step 1, then step 2, then step 3)",
+        "Emitting cached local data first, then fetching and emitting fresh remote data from server",
+        "Playing an intro audio clip, followed by main podcast track, followed by outro"
+      ],
+      "pitfalls": [
+        "The second Observable will NEVER be subscribed to if the first Observable is infinite and never completes",
+        "Errors in any upstream Observable immediately abort the sequence and prevent subsequent Observables from running"
+      ],
+      "relatedOperators": ["merge", "concatMap", "startWith"],
+      "docUrl": "https://rxjs.dev/api/operators/concat"
+    },
+    "merge": {
+      "useCases": [
+        "Combining multiple user interaction triggers (e.g. keyboard Enter key, button Click, and swipe gesture) into a unified action stream",
+        "Aggregating incoming log messages from multiple microservices or WebSocket channels concurrently",
+        "Listening to multiple sensor streams simultaneously and processing events in the exact order they arrive"
+      ],
+      "pitfalls": [
+        "Items from all streams interleave concurrently; merge does NOT preserve stream-by-stream grouping",
+        "If any merged stream errors, the entire merged output terminates immediately unless catchError is applied to each input stream"
+      ],
+      "relatedOperators": ["concat", "race", "mergeMap"],
+      "docUrl": "https://rxjs.dev/api/operators/merge"
+    },
+    "forkJoin": {
+      "useCases": [
+        "Waiting for multiple parallel HTTP requests to complete and processing their combined final results (equivalent to Promise.all)",
+        "Loading initial page bootstrap data (user profile, config settings, feature flags) simultaneously",
+        "Submitting a batch of independent API mutations and waiting for all to succeed before displaying a confirmation toast"
+      ],
+      "pitfalls": [
+        "forkJoin only emits ONCE, when all input Observables complete; if ANY input Observable never completes, forkJoin will NEVER emit",
+        "If any input Observable completes without emitting a single value, forkJoin completes without emitting; use defaultIfEmpty() on empty streams"
+      ],
+      "relatedOperators": ["combineLatest", "zip", "concat"],
+      "docUrl": "https://rxjs.dev/api/operators/forkJoin"
+    },
+    "zip": {
+      "useCases": [
+        "Pairing inputs index-for-index (e.g. pairing 1st keypress with 1st click, 2nd with 2nd)",
+        "Synchronizing dual-channel sensor pulses where every reading on channel A corresponds to a companion reading on channel B",
+        "Zipping data rows with corresponding header columns to construct structured objects"
+      ],
+      "pitfalls": [
+        "If one stream emits much faster than the other, zip buffers emissions indefinitely waiting for corresponding pairs, risking memory leaks",
+        "Zip completes as soon as any input stream completes and its remaining buffered pairs are exhausted"
+      ],
+      "relatedOperators": ["combineLatest", "forkJoin", "pairwise"],
+      "docUrl": "https://rxjs.dev/api/operators/zip"
+    },
+    "race": {
+      "useCases": [
+        "Implementing request timeouts by racing an HTTP request against a timer() stream",
+        "Selecting the fastest responding CDN mirror or cache source and discarding slower alternatives",
+        "Listening to user confirmation vs dialog auto-dismiss countdown, letting whichever happens first win"
+      ],
+      "pitfalls": [
+        "Whichever Observable emits first 'wins' the race; all other competing Observables are immediately unsubscribed and canceled",
+        "If the winning Observable later errors, the error is propagated downstream; the runner-up streams are not revived"
+      ],
+      "relatedOperators": ["timeout", "merge", "withLatestFrom"],
+      "docUrl": "https://rxjs.dev/api/operators/race"
+    },
+    "withLatestFrom": {
+      "useCases": [
+        "Sampling secondary state (e.g. current auth token or user settings) only when a primary action occurs (e.g. user clicks 'Submit')",
+        "Annotating click events with the latest form values without triggering on form value changes",
+        "Attaching current GPS coordinates to photo capture events"
+      ],
+      "pitfalls": [
+        "withLatestFrom will NOT emit anything if the secondary Observable has not emitted at least one value before the primary stream emits",
+        "Changes in the secondary Observable do NOT cause emissions; only the primary source triggers downstream notifications"
+      ],
+      "relatedOperators": ["combineLatest", "sample", "zip"],
+      "docUrl": "https://rxjs.dev/api/operators/withLatestFrom"
+    },
+    "startWith": {
+      "useCases": [
+        "Providing an initial placeholder or loading state value before async HTTP data arrives",
+        "Setting the initial value for a counter, theme preference, or form dropdown",
+        "Ensuring combineLatest emits immediately without waiting for a slow stream to fire its first value"
+      ],
+      "pitfalls": [
+        "startWith emits synchronously upon subscription; any operators placed before startWith in the pipe will not affect the prepended value",
+        "Prepending multiple items startWith(a, b, c) emits them synchronously in that exact order"
+      ],
+      "relatedOperators": ["endWith", "concat", "defaultIfEmpty"],
+      "docUrl": "https://rxjs.dev/api/operators/startWith"
+    },
+    "endWith": {
+      "useCases": [
+        "Appending a final 'COMPLETED' or summary emission right before the stream closes",
+        "Displaying an end-of-feed indicator or footer marker when a paginated feed reaches completion",
+        "Emitting a final cleanup state or teardown status to downstream subscribers"
+      ],
+      "pitfalls": [
+        "endWith will NEVER emit if the source Observable never completes (e.g. infinite streams or open Subjects)",
+        "If the source errors, endWith will NOT emit; the error takes precedence"
+      ],
+      "relatedOperators": ["startWith", "finalize", "concat"],
+      "docUrl": "https://rxjs.dev/api/operators/endWith"
+    },
+    "concatAll": {
+      "useCases": [
+        "Flattening a higher-order Observable by subscribing to each inner Observable strictly sequentially",
+        "Queuing file upload tasks or database write transactions so task N+1 starts only after task N completes",
+        "Playing a queue of sequential animation clips or audio tracks"
+      ],
+      "pitfalls": [
+        "If an inner Observable never completes, concatAll hangs indefinitely and will never subscribe to subsequent inner Observables",
+        "Buffers incoming inner Observables in memory while waiting for the current one to finish; high incoming volume can consume memory"
+      ],
+      "relatedOperators": ["concatMap", "mergeAll", "switchAll"],
+      "docUrl": "https://rxjs.dev/api/operators/concatAll"
+    },
+    "mergeAll": {
+      "useCases": [
+        "Concurrently subscribing to and flattening multiple inner Observables as they arrive",
+        "Handling multiple concurrent WebSocket subscription feeds or parallel downloads",
+        "Managing a pool of concurrent worker requests with the optional concurrency limit parameter"
+      ],
+      "pitfalls": [
+        "Without a concurrency limit, mergeAll subscribes to ALL incoming inner Observables simultaneously, which can overwhelm network connections",
+        "Emissions from concurrent inner Observables interleave arbitrarily based on arrival timing"
+      ],
+      "relatedOperators": ["mergeMap", "concatAll", "exhaustAll"],
+      "docUrl": "https://rxjs.dev/api/operators/mergeAll"
+    }
+  },
+  "utility": {
+    "tap": {
+      "useCases": [
+        "Performing side effects such as logging emissions, setting external loading flags, or caching values in local variables",
+        "Debugging stream pipelines by inspecting notifications without mutating or altering stream data",
+        "Triggering analytics telemetry or external UI animations alongside data flow"
+      ],
+      "pitfalls": [
+        "Do not mutate emission objects inside tap; mutating objects breaks purity and causes difficult-to-trace bugs downstream",
+        "tap does not transform values; the returned value from tap's callback is completely ignored by RxJS"
+      ],
+      "relatedOperators": ["map", "finalize", "delay"],
+      "docUrl": "https://rxjs.dev/api/operators/tap"
+    },
+    "delay": {
+      "useCases": [
+        "Shifting all emissions forward in time by a fixed millisecond delay for animation sequencing or simulated latency",
+        "Debouncing tooltips or popover dismissals by delaying the hide action",
+        "Throttling automated UI tour steps to allow users time to read instructional banners"
+      ],
+      "pitfalls": [
+        "delay shifts the timing of emissions but does NOT delay stream subscription; source subscription occurs immediately",
+        "Errors from the source are NOT delayed; errors pass through immediately to downstream subscribers"
+      ],
+      "relatedOperators": ["delayWhen", "debounceTime", "timer"],
+      "docUrl": "https://rxjs.dev/api/operators/delay"
+    },
+    "delayWhen": {
+      "useCases": [
+        "Delaying each emission by a dynamic duration computed per item (e.g. delaying heavy items longer than light items)",
+        "Holding back emissions until a dynamic external resource (such as token refresh or animation finish) signals completion",
+        "Staggering notification delivery based on notification priority"
+      ],
+      "pitfalls": [
+        "The duration selector must return an Observable; the item is delayed until that duration Observable emits its first value",
+        "If the duration selector Observable completes without emitting a next value, the delayed item is immediately released downstream"
+      ],
+      "relatedOperators": ["delay", "debounce", "bufferWhen"],
+      "docUrl": "https://rxjs.dev/api/operators/delayWhen"
+    },
+    "timeout": {
+      "useCases": [
+        "Aborting slow HTTP API requests if the server fails to respond within a specified deadline (e.g. 5000ms)",
+        "Detecting dropped WebSocket heartbeats or stalled Bluetooth device connections",
+        "Falling back to cached data or alternative services when primary data source is unresponsive"
+      ],
+      "pitfalls": [
+        "By default, timeout throws a TimeoutError when the time elapses without an emission, terminating the stream; provide with fallback Observable if you want graceful recovery",
+        "Timeout resets its countdown timer on EVERY emission; in a multi-value stream, it enforces maximum inter-emission duration"
+      ],
+      "relatedOperators": ["race", "catchError", "retry"],
+      "docUrl": "https://rxjs.dev/api/operators/timeout"
+    },
+    "timeInterval": {
+      "useCases": [
+        "Measuring the elapsed time between consecutive user clicks to detect double-click or typing cadence",
+        "Profiling network latency and packet jitter in real-time streaming connections",
+        "Monitoring time intervals between sensor pulses to calculate rotational speed or pulse rate"
+      ],
+      "pitfalls": [
+        "Transforms emissions into { value: T, interval: number } objects, wrapping your original data type",
+        "The interval for the very first emission is measured relative to the moment of subscription"
+      ],
+      "relatedOperators": ["timestamp", "pairwise", "delay"],
+      "docUrl": "https://rxjs.dev/api/operators/timeInterval"
+    },
+    "timestamp": {
+      "useCases": [
+        "Attaching accurate epoch timestamps (Date.now()) to incoming event emissions for audit trails or logging",
+        "Synchronizing distributed client events with server telemetry timelines",
+        "Benchmarking processing pipeline stage latencies"
+      ],
+      "pitfalls": [
+        "Wraps emitted values in { value: T, timestamp: number } objects, altering downstream type signatures",
+        "Timestamp uses the local client machine's clock by default; clock skew across different clients must be considered"
+      ],
+      "relatedOperators": ["timeInterval", "tap", "map"],
+      "docUrl": "https://rxjs.dev/api/operators/timestamp"
+    },
+    "finalize": {
+      "useCases": [
+        "Resetting loading spinners and progress bars regardless of whether an HTTP request succeeded, failed, or was cancelled (isBusy = false)",
+        "Releasing acquired system resources, closing database handles, or clearing memory buffers",
+        "Logging final session metrics upon user unsubscription or route navigation"
+      ],
+      "pitfalls": [
+        "finalize executes callback function upon any teardown (complete, error, OR unsubscribe); it does NOT indicate successful completion",
+        "Finalize callback takes no parameters; it cannot inspect whether the stream errored or completed normally"
+      ],
+      "relatedOperators": ["tap", "endWith", "catchError"],
+      "docUrl": "https://rxjs.dev/api/operators/finalize"
+    },
+    "repeat": {
+      "useCases": [
+        "Restarting a completed workflow or stream sequence a fixed number of times",
+        "Implementing recurring background polling by re-subscribing to an HTTP request upon completion",
+        "Replaying an onboarding demonstration sequence upon completion"
+      ],
+      "pitfalls": [
+        "repeat ONLY resubscribes upon complete; if the source errors, repeat will NOT catch the error (use retry instead)",
+        "Using repeat() without arguments on a synchronously completing source will cause an infinite synchronous loop that freezes the browser thread"
+      ],
+      "relatedOperators": ["repeatWhen", "retry", "delay"],
+      "docUrl": "https://rxjs.dev/api/operators/repeat"
+    },
+    "repeatWhen": {
+      "isDeprecated": true,
+      "deprecationNotice": "Deprecated in RxJS 7 in favor of repeat({ delay: (count) => notifier$ }).",
+      "modernAlternative": "repeat({ delay: (count) => notifier$ })",
+      "useCases": [
+        "Re-subscribing to a completed stream when an external notifier (e.g. 'Refresh' button or window focus) emits",
+        "Implementing complex legacy repeat schedules with dynamic delays"
+      ],
+      "pitfalls": [
+        "Deprecated in RxJS 7 in favor of repeat({ delay: () => notifier$ }) which provides a clearer, less error-prone API",
+        "The notifier function receives an Observable of completion notifications; if that notifier completes, the repeat sequence terminates permanently"
+      ],
+      "relatedOperators": ["repeat", "retryWhen", "retry"],
+      "docUrl": "https://rxjs.dev/api/operators/repeatWhen"
+    },
+    "retry": {
+      "useCases": [
+        "Automatically retrying failed HTTP requests up to N times to recover from transient network blips",
+        "Re-establishing dropped WebSocket connections with exponential backoff (retry({ count: 3, delay: ... }))",
+        "Retrying flaky third-party API calls before falling back to cached offline data"
+      ],
+      "pitfalls": [
+        "Do not retry non-idempotent HTTP mutations (e.g. POST /charge-card) without deduplication keys, as retries may charge users multiple times",
+        "If max retry count is exhausted, retry propagates the final error downstream unless caught by catchError"
+      ],
+      "relatedOperators": ["retryWhen", "repeat", "catchError"],
+      "docUrl": "https://rxjs.dev/api/operators/retry"
+    },
+    "retryWhen": {
+      "isDeprecated": true,
+      "deprecationNotice": "Deprecated in RxJS 7 in favor of retry({ delay: (error, count) => notifier$ }) or retry({ count, delay, resetOnSuccess: true }).",
+      "modernAlternative": "retry({ delay: (error, count) => notifier$ })",
+      "useCases": [
+        "Implementing custom error handling backoff strategies in legacy RxJS 6 applications",
+        "Retrying a failed stream only when a specific 'Reconnect' user button is clicked"
+      ],
+      "pitfalls": [
+        "Deprecated in RxJS 7 in favor of retry({ delay: (err, retryCount) => timer(...) }) which simplifies backoff configuration",
+        "If the notifier stream errors, that error is passed downstream and retries cease immediately"
+      ],
+      "relatedOperators": ["retry", "repeatWhen", "catchError"],
+      "docUrl": "https://rxjs.dev/api/operators/retryWhen"
+    },
+    "dematerialize": {
+      "useCases": [
+        "Unwrapping serialized Notification objects (next, error, complete) back into actual stream emissions",
+        "Replaying recorded stream sessions stored in IndexedDB or sent across Web Workers",
+        "Implementing custom marble testing harnesses or meta-stream visualizers"
+      ],
+      "pitfalls": [
+        "Source MUST emit RxJS Notification instances; emitting regular objects or primitives causes a runtime TypeError",
+        "An error Notification encountered in the source stream causes dematerialize to emit an error notification downstream and terminate"
+      ],
+      "relatedOperators": ["map", "toArray", "tap"],
+      "docUrl": "https://rxjs.dev/api/operators/dematerialize"
+    }
+  },
+  "multicasting": {
+    "share": {
+      "useCases": [
+        "Sharing a single cold Observable execution (e.g. expensive HTTP request or WebSocket connection) across multiple subscribers",
+        "Preventing duplicate API calls when multiple UI components subscribe to the same data stream simultaneously",
+        "Multicasting live real-time price updates from a single socket connection to multiple widgets"
+      ],
+      "pitfalls": [
+        "By default in RxJS 7, share() disconnects when subscriber count drops to 0; late subscribers arriving after zero will trigger a new subscription unless reset configuration is customized",
+        "Subscribers that join after emissions have already occurred will miss past values (use shareReplay if late subscribers need past data)"
+      ],
+      "relatedOperators": ["shareReplay", "publish", "multicast"],
+      "docUrl": "https://rxjs.dev/api/operators/share"
+    },
+    "shareReplay": {
+      "useCases": [
+        "Caching HTTP GET request responses so late-subscribing components receive the cached result instantly without re-fetching",
+        "Storing application configuration or authentication state in memory for on-demand component consumption",
+        "Replaying the latest N telemetry events to new dashboard widgets as they mount"
+      ],
+      "pitfalls": [
+        "Always use { bufferSize: 1, refCount: true } in UI applications; omitting refCount: true keeps the source subscription alive forever even after all subscribers unsubscribe, leaking memory",
+        "If the source errors and refCount is false, shareReplay will permanently cache and replay that error to all future subscribers"
+      ],
+      "relatedOperators": ["share", "publish", "multicast"],
+      "docUrl": "https://rxjs.dev/api/operators/shareReplay"
+    },
+    "multicast": {
+      "isDeprecated": true,
+      "deprecationNotice": "Deprecated in RxJS 7 in favor of connectable() or share() with custom connector factory.",
+      "modernAlternative": "connectable(source$, { connector: () => new Subject() })",
+      "useCases": [
+        "Customizing the underlying Subject instance (e.g. using a ReplaySubject or BehaviorSubject) in legacy RxJS architectures",
+        "Controlling multi-subscriber execution timing via ConnectableObservable .connect() in legacy codebases"
+      ],
+      "pitfalls": [
+        "Deprecated in RxJS 7. Use connectable() or share() with custom connector factories instead",
+        "Requires manual invocation of .connect() on the returned ConnectableObservable to start source execution, which frequently causes silent bugs if forgotten"
+      ],
+      "relatedOperators": ["publish", "refCount", "share"],
+      "docUrl": "https://rxjs.dev/api/operators/multicast"
+    },
+    "publish": {
+      "isDeprecated": true,
+      "deprecationNotice": "Deprecated in RxJS 7 in favor of connectable() or share().",
+      "modernAlternative": "connectable(source$)",
+      "useCases": [
+        "Converting a cold Observable into a ConnectableObservable to synchronize the start time across multiple subscribers in legacy systems",
+        "Ensuring that all initial subscribers are registered before triggering a one-time streaming computation via .connect()"
+      ],
+      "pitfalls": [
+        "Deprecated in RxJS 7. Use connectable(source$) or share() instead",
+        "Will not emit any values or execute upstream operations until .connect() is explicitly called"
+      ],
+      "relatedOperators": ["multicast", "refCount", "share"],
+      "docUrl": "https://rxjs.dev/api/operators/publish"
+    },
+    "refCount": {
+      "isDeprecated": true,
+      "deprecationNotice": "Deprecated in RxJS 7 in favor of share() with reset configuration or connectable(). Manual piped refCount() is superseded.",
+      "modernAlternative": "share()",
+      "updatedDescription": "Piped onto a ConnectableObservable (from publish() or multicast()). Connects to source on 1st subscriber, and automatically disconnects when subscriber count drops to zero. Deprecated in RxJS 7 in favor of share() with reset configuration or connectable().",
+      "updatedMetadataDescription": "Reference counting connection automator. Deprecated in RxJS 7 in favor of share().",
+      "useCases": [
+        "Automating connect() and disconnect() on a ConnectableObservable based on subscriber count in legacy RxJS 6 applications",
+        "Automatically establishing upstream subscription on 1st subscriber and tearing down when subscriber count reaches 0"
+      ],
+      "pitfalls": [
+        "Deprecated in RxJS 7 in favor of share() with reset configuration or connectable(). Piped connectable refCounting is superseded by share()",
+        "When subscriber count drops to zero, the source is unsubscribed; subsequent subscribers trigger a fresh resubscription unless caching is configured"
+      ],
+      "relatedOperators": ["share", "publish", "multicast"],
+      "docUrl": "https://rxjs.dev/api/operators/refCount"
+    }
+  }
+}

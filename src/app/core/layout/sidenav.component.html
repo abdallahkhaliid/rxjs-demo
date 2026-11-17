@@ -1,0 +1,80 @@
+<aside class="sidenav-container" [class.open]="isOpen()">
+  <div class="sidenav-header">
+    <span class="sidenav-title">Curriculum Catalog</span>
+    <button class="btn-ghost btn-sm close-btn" (click)="closeSidenav.emit()" type="button" aria-label="Close menu">
+      ✕
+    </button>
+  </div>
+
+  <nav class="sidenav-nav">
+    @for (module of searchService.navGroups(); track module.id) {
+      @let modProgress = progressService.getModuleProgress(module.id);
+      <div class="module-group" [class.expanded]="isModuleExpanded(module.id)">
+        <button
+          class="module-group-header"
+          (click)="toggleModule(module.id)"
+          type="button"
+          [attr.aria-expanded]="isModuleExpanded(module.id)"
+        >
+          <div class="module-meta">
+            <span class="module-icon">{{ module.icon }}</span>
+            <div class="module-text">
+              <span class="module-num">Module {{ module.moduleNumber }}</span>
+              <span class="module-name">{{ module.title }}</span>
+            </div>
+          </div>
+          <div class="module-header-right">
+            @if (modProgress.isCompleted) {
+              <span class="module-badge complete" title="Module completed">✓</span>
+            } @else if (modProgress.completed > 0) {
+              <span class="module-badge in-progress" title="Module in progress">{{ modProgress.completed }}/{{ modProgress.total }}</span>
+            }
+            <span class="chevron" [class.rotated]="isModuleExpanded(module.id)">▾</span>
+          </div>
+        </button>
+
+        @if (isModuleExpanded(module.id)) {
+          <ul class="topic-list">
+            @for (topic of module.topics; track topic.id) {
+              <li class="topic-item">
+                <a
+                  [routerLink]="topic.path"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  class="topic-link"
+                  [class.topic-completed]="progressService.isCompleted(topic.id)"
+                  (click)="onLinkClick()"
+                >
+                  <span class="topic-indicator">
+                    @if (progressService.isCompleted(topic.id)) {
+                      <span class="check-icon" title="Completed">✓</span>
+                    } @else {
+                      <span class="dot-icon">·</span>
+                    }
+                  </span>
+                  <span class="topic-title">{{ topic.title }}</span>
+                  @if (topic.difficulty) {
+                    <span class="topic-diff-badge" [class]="topic.difficulty">
+                      {{ topic.difficulty.charAt(0).toUpperCase() }}
+                    </span>
+                  }
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </nav>
+
+  <div class="sidenav-footer">
+    <div class="footer-card">
+      <span class="footer-title">RxJS v7.8 + Angular 20</span>
+      <span class="footer-sub">Zoneless • Signal-driven</span>
+    </div>
+  </div>
+</aside>
+
+@if (isOpen()) {
+  <div class="sidenav-backdrop" (click)="closeSidenav.emit()"></div>
+}

@@ -1,0 +1,26 @@
+--- a/src/app/shared/components/marble-diagram/marble-diagram.component.ts
++++ b/src/app/shared/components/marble-diagram/marble-diagram.component.ts
+@@ -59,4 +59,5 @@ export class MarbleDiagramComponent implements OnDestroy {
+   readonly scrubberX = computed(() => {
+-    const progress = this.currentTimeMs() / this.durationMs();
++    const duration = Math.max(this.durationMs() || 0, 1);
++    const progress = this.currentTimeMs() / duration;
+     return this.PADDING_LEFT + Math.min(Math.max(progress, 0), 1) * this.TIMELINE_WIDTH;
+   });
+@@ -140,4 +141,5 @@ export class MarbleDiagramComponent implements OnDestroy {
+   timeToX(timeMs: number): number {
+-    const ratio = Math.min(Math.max(timeMs / this.durationMs(), 0), 1);
++    const duration = Math.max(this.durationMs() || 0, 1);
++    const safeTime = Number.isFinite(timeMs) ? timeMs : 0;
++    const ratio = Math.min(Math.max(safeTime / duration, 0), 1);
+     return this.PADDING_LEFT + ratio * this.TIMELINE_WIDTH;
+   }
+@@ -145,4 +147,5 @@ export class MarbleDiagramComponent implements OnDestroy {
+   xToTime(x: number): number {
+-    const relX = Math.min(Math.max(x - this.PADDING_LEFT, 0), this.TIMELINE_WIDTH);
+-    return Math.round((relX / this.TIMELINE_WIDTH) * this.durationMs());
++    const duration = Math.max(this.durationMs() || 0, 0);
++    const safeX = Number.isFinite(x) ? x : this.PADDING_LEFT;
++    const relX = Math.min(Math.max(safeX - this.PADDING_LEFT, 0), this.TIMELINE_WIDTH);
++    return Math.round((relX / this.TIMELINE_WIDTH) * duration);
+   }

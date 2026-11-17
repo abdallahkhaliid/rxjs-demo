@@ -1,0 +1,308 @@
+<app-playground-wrapper
+  [title]="recipeData.title"
+  [subtitle]="recipeData.subtitle"
+  [category]="recipeData.category"
+  [difficulty]="recipeData.difficulty"
+  topicId="lifecycle-teardown"
+  [(activeTab)]="activeTab"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-pane concept-pane">
+    <div class="concept-card highlight-card">
+      <div class="card-header">
+        <h3>🧹 Subscription Teardown & Memory Management</h3>
+      </div>
+      <p>{{ recipeData.description }}</p>
+      <div class="key-takeaways">
+        <div class="takeaway-item">
+          <span class="icon">🧟</span>
+          <div>
+            <strong>The Zombie Subscription Phenomenon:</strong>
+            When a component subscribes to an observable stream (intervals, store selectors, router events) without unhooking upon destruction, the subscription's internal closure retains a reference to the component instance in the JavaScript heap, preventing garbage collection (F41.2, F41.B3).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">⚡</span>
+          <div>
+            <strong>Angular 20 takeUntilDestroyed():</strong>
+            Operates directly within the injection context (or accepts an explicit DestroyRef reference outside constructors). It automatically tears down and unsubscribes the observable when the view is destroyed (F41.1, F41.4, F41.B4).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🛡️</span>
+          <div>
+            <strong>Teardown & Completion Safety:</strong>
+            If an observable completes naturally prior to component destroy, takeUntilDestroyed unhooks its teardown listener cleanly without throwing errors when destroy subsequently fires (F41.5, F41.B1, F41.B5).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🛑</span>
+          <div>
+            <strong>Timer Leaks Avoided:</strong>
+            Active timers, intervals, and web socket streams are immediately halted upon teardown, preventing background CPU spinning and runaway state mutations (F41.4, F41.B2).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-pane code-pane">
+    <div class="code-subtabs">
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'modern'"
+        (click)="codeSubTab.set('modern')"
+        type="button"
+      >
+        Modern takeUntilDestroyed (Angular 20)
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'leaky'"
+        (click)="codeSubTab.set('leaky')"
+        type="button"
+      >
+        The Leaky Anti-Pattern
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'legacy'"
+        (click)="codeSubTab.set('legacy')"
+        type="button"
+      >
+        Legacy takeUntil + Subject
+      </button>
+    </div>
+
+    @if (codeSubTab() === 'modern') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['modern'].code"
+        [title]="recipeData.codeSnippets['modern'].title"
+        language="typescript"
+      />
+    }
+    @if (codeSubTab() === 'leaky') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['leaky'].code"
+        [title]="recipeData.codeSnippets['leaky'].title"
+        language="typescript"
+      />
+    }
+    @if (codeSubTab() === 'legacy') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['legacy'].code"
+        [title]="recipeData.codeSnippets['legacy'].title"
+        language="typescript"
+      />
+    }
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-pane visual-pane">
+    <div class="lifecycle-workbench">
+      <!-- Leak Warning Banner -->
+      <div
+        class="leak-alert-banner"
+        [class.leaking]="telemetry().hasMemoryLeak"
+        [class.healthy]="!telemetry().hasMemoryLeak"
+        data-testid="leak-alert-banner"
+      >
+        @if (telemetry().hasMemoryLeak) {
+          <div class="alert-content">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-text">
+              <strong>MEMORY LEAK DETECTED:</strong>
+              {{ telemetry().activeSubscriptionCount - telemetry().activeComponentCount }} Zombie subscription(s) continue ticking in background despite components being destroyed!
+            </div>
+          </div>
+        } @else {
+          <div class="alert-content">
+            <span class="alert-icon">✅</span>
+            <div class="alert-text">
+              <strong>ZERO MEMORY LEAKS:</strong>
+              All active subscriptions are cleanly bound and destroyed in lockstep with component lifecycles.
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Simulator Controls Ribbon -->
+      <div class="simulator-controls-card">
+        <div class="controls-row">
+          <button
+            class="btn btn-warning"
+            (click)="mountWidget('leaky')"
+            type="button"
+            data-testid="mount-leaky-btn"
+          >
+            ➕ Mount Leaky Widget (Unmanaged)
+          </button>
+          <button
+            class="btn btn-primary"
+            (click)="mountWidget('managed')"
+            type="button"
+            data-testid="mount-managed-btn"
+          >
+            ➕ Mount Managed Widget (takeUntilDestroyed)
+          </button>
+          <button
+            class="btn btn-secondary"
+            (click)="unmountAll()"
+            type="button"
+            data-testid="unmount-all-btn"
+          >
+            ❌ Unmount All Active
+          </button>
+          <button
+            class="btn btn-danger btn-outline"
+            (click)="forceCleanAll()"
+            type="button"
+            data-testid="clean-all-btn"
+          >
+            🧹 Force Clean Graveyard
+          </button>
+        </div>
+
+        <div class="telemetry-grid">
+          <div class="tel-card" data-testid="stat-active-components">
+            <span class="tel-label">Mounted Components</span>
+            <span class="tel-value">{{ telemetry().activeComponentCount }}</span>
+          </div>
+          <div class="tel-card" data-testid="stat-active-subs">
+            <span class="tel-label">Active Subscriptions in Memory</span>
+            <span
+              class="tel-value"
+              [class.danger]="telemetry().activeSubscriptionCount > telemetry().activeComponentCount"
+            >
+              {{ telemetry().activeSubscriptionCount }}
+            </span>
+          </div>
+          <div class="tel-card">
+            <span class="tel-label">Spawned / Destroyed</span>
+            <span class="tel-value">{{ telemetry().spawnedCount }} / {{ telemetry().destroyedCount }}</span>
+          </div>
+          <div class="tel-card">
+            <span class="tel-label">Cumulative Zombie Ticks</span>
+            <span class="tel-value" [class.danger]="telemetry().totalZombieTicks > 0">
+              {{ telemetry().totalZombieTicks }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Mounted Widgets -->
+      <div class="section-container">
+        <h4>📦 Active Mounted Components (In DOM)</h4>
+        <div class="widgets-grid" data-testid="mounted-widgets-grid">
+          @if (mountedWidgets().length > 0) {
+            @for (widget of mountedWidgets(); track widget.id) {
+              <div class="widget-card" [class]="widget.type">
+                <div class="widget-card-header">
+                  <span class="widget-badge" [class]="widget.type">
+                    {{ widget.type === 'managed' ? '🛡️ Managed' : '⚠️ Leaky' }}
+                  </span>
+                  <button
+                    class="btn btn-sm btn-secondary"
+                    (click)="unmountWidget(widget.id)"
+                    type="button"
+                  >
+                    Unmount
+                  </button>
+                </div>
+                <div class="widget-body">
+                  <div class="widget-id">{{ widget.id }}</div>
+                  <div class="widget-pulse">
+                    Ticks: <strong class="tick-value">{{ widget.ticks }}</strong>
+                  </div>
+                </div>
+              </div>
+            }
+          } @else {
+            <div class="empty-state">No components currently mounted. Click a button above to mount!</div>
+          }
+        </div>
+      </div>
+
+      <!-- Zombie Graveyard (Unmanaged Leaks) -->
+      @if (zombieWidgets().length > 0) {
+        <div class="section-container graveyard-section">
+          <h4>🪦 Zombie Subscription Graveyard (Destroyed from DOM, but still alive in Memory!)</h4>
+          <div class="widgets-grid" data-testid="zombie-graveyard-grid">
+            @for (zombie of zombieWidgets(); track zombie.id) {
+              <div class="widget-card zombie">
+                <div class="widget-card-header">
+                  <span class="widget-badge danger">🧟 Zombie Leak</span>
+                  <span class="zombie-status">Ticking in Background</span>
+                </div>
+                <div class="widget-body">
+                  <div class="widget-id">{{ zombie.id }}</div>
+                  <div class="widget-pulse">
+                    Zombie Ticks: <strong class="tick-value danger">{{ zombie.ticks }}</strong>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Edge Case Test Verifiers -->
+      <div class="edge-cases-card">
+        <h4>🧪 Edge Case Invariant Verifiers</h4>
+        <div class="verifier-buttons">
+          <button
+            class="btn btn-secondary"
+            (click)="testSubscribeAfterDestroy()"
+            type="button"
+            data-testid="test-after-destroy-btn"
+          >
+            F41.B1: Test Subscribe After Destroy
+          </button>
+          <button
+            class="btn btn-secondary"
+            (click)="testActiveTimerTeardown()"
+            type="button"
+            data-testid="test-active-timer-btn"
+          >
+            F41.B2: Test Active Timer Teardown
+          </button>
+          <button
+            class="btn btn-secondary"
+            (click)="testMultipleDestroy()"
+            type="button"
+            data-testid="test-multi-destroy-btn"
+          >
+            F41.B5: Test Multi Destroy Calls
+          </button>
+        </div>
+
+        @if (edgeCaseMessage()) {
+          <div class="edge-case-result" data-testid="edge-case-result">
+            {{ edgeCaseMessage() }}
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Live Output Console -->
+    <div class="console-section">
+      <app-output-console
+        title="Lifecycle & Teardown Telemetry Log"
+        [entries]="consoleEntries()"
+        (clear)="clearConsole()"
+      />
+    </div>
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-pane comparison-pane">
+    <app-comparison-table [data]="comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-pane quiz-pane">
+    <app-quiz-block [questions]="quizzes" topicId="lifecycle-teardown" />
+  </div>
+</app-playground-wrapper>

@@ -1,0 +1,452 @@
+<app-playground-wrapper
+  title="Event Loop & Schedulers Execution Visualizer"
+  subtitle="Interactive step-by-step simulator contrasting Call Stack, Microtask Queue, Macrotask Queue, and Render Frame"
+  category="Schedulers"
+  difficulty="advanced"
+  topicId="schedulers-visualizer"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+  [(activeTab)]="activeTab"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-container concept-panel">
+    <div class="concept-summary-card">
+      <p class="summary-text">
+        JavaScript has a single-threaded runtime model based on an <strong>Event Loop</strong>. RxJS Schedulers
+        provide fine-grained control over <em>when</em> and <em>where</em> emissions and tasks execute:
+        synchronously on the call stack (<code>queueScheduler</code>), at the head of the microtask queue
+        (<code>asapScheduler</code>), on the macrotask queue (<code>asyncScheduler</code>), or right before
+        the browser paints the next visual frame (<code>animationFrameScheduler</code>).
+      </p>
+    </div>
+
+    <div class="pillars-section">
+      <h2 class="section-heading">The Four Concurrency Lanes</h2>
+      <div class="pillars-grid">
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-tag sync">Call Stack & Trampoline</span>
+          </div>
+          <h3 class="pillar-title">1. Synchronous Execution</h3>
+          <p class="pillar-desc">
+            Directly executes on the native JavaScript Call Stack. <code>queueScheduler</code> executes inline,
+            using an internal trampoline array to safely process deep recursion without growing the call stack.
+          </p>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-tag microtask">Microtask Queue</span>
+          </div>
+          <h3 class="pillar-title">2. asapScheduler</h3>
+          <p class="pillar-desc">
+            Executes immediately after the current call stack clears, before any browser paint or macrotask.
+            Drained in strict FIFO order via <code>queueMicrotask</code> / Promises.
+          </p>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-tag render">Render / Vsync Queue</span>
+          </div>
+          <h3 class="pillar-title">3. animationFrameScheduler</h3>
+          <p class="pillar-desc">
+            Coordinates with the display refresh rate (~16.6ms at 60Hz) via <code>window.requestAnimationFrame</code>.
+            Fires before layout and paint to ensure stutter-free animations.
+          </p>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-tag macrotask">Macrotask Queue</span>
+          </div>
+          <h3 class="pillar-title">4. asyncScheduler</h3>
+          <p class="pillar-desc">
+            Dispatches via <code>setTimeout</code> / <code>setInterval</code>. Accommodates arbitrary millisecond
+            delays and yields control back to the browser between iterations.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="deep-dive-section">
+      <div class="deep-dive-card">
+        <h3>The Turn Cycle: Step-by-Step Dispatch Order</h3>
+        <p>
+          Each turn of the Event Loop follows a deterministic sequence:
+          (1) Run synchronous code until the Call Stack is empty;
+          (2) Drain all pending microtasks until the Microtask Queue is completely empty;
+          (3) Check if a visual frame update is required (dispatch requestAnimationFrame callbacks);
+          (4) Pick the oldest task from the Macrotask Queue and push its callback onto the Call Stack.
+        </p>
+      </div>
+
+      <div class="deep-dive-card">
+        <h3>Why Schedulers Matter in RxJS</h3>
+        <p>
+          RxJS operators accept schedulers as optional arguments. Passing <code>asyncScheduler</code> to <code>observeOn</code>
+          or <code>subscribeOn</code> decouples computationally intensive emissions from the main UI thread,
+          while <code>animationFrameScheduler</code> ensures smooth 60fps canvas or CSS transforms.
+        </p>
+      </div>
+    </div>
+
+    <div class="takeaways-card">
+      <h3>💡 Key Takeaways</h3>
+      <ul>
+        <li>Execution priority: <strong>Call Stack (queue) ➔ Microtask (asap) ➔ Render (rAF) ➔ Macrotask (async)</strong>.</li>
+        <li><code>queueScheduler</code> prevents <em>RangeError: Maximum call stack size exceeded</em> by flattening recursion onto an internal trampoline queue.</li>
+        <li>Microtasks always drain to exhaustion before any macrotask or browser repaint can take place.</li>
+        <li>Timed schedulers (<code>asyncScheduler</code>) return subscriptions that can be unsubscribed to abort the pending timer before execution.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-container">
+    <app-code-block
+      [title]="simulator.activeScenario().name + '.ts'"
+      [code]="simulator.activeScenario().codeSnippet"
+      language="typescript"
+      [highlightLines]="simulator.codeLineHighlight() ? [simulator.codeLineHighlight()!] : []"
+    />
+  </div>
+
+  <!-- 3. Visual Demo Tab (Event Loop Simulator) -->
+  <div slot="visual" class="tab-container visual-demo-container">
+    <!-- Scenario Selection Toolbar -->
+    <div class="scenario-bar">
+      <div class="scenario-selector-group">
+        <label for="scenarioSelect" class="scenario-label">Execution Scenario:</label>
+        <select
+          id="scenarioSelect"
+          class="scenario-dropdown"
+          [value]="simulator.currentScenarioId()"
+          (change)="onScenarioChange($event)"
+        >
+          @for (scen of simulator.scenarios(); track scen.id) {
+            <option [value]="scen.id">
+              {{ scen.name }} ({{ scen.badge }})
+            </option>
+          }
+        </select>
+      </div>
+
+      <div class="scenario-description">
+        <p>{{ simulator.activeScenario().description }}</p>
+      </div>
+    </div>
+
+    <!-- Transport Controls & Speed Toolbar -->
+    <div class="transport-toolbar">
+      <div class="transport-buttons">
+        <button
+          type="button"
+          class="btn-control"
+          (click)="simulator.reset()"
+          title="Reset to Step 0"
+        >
+          ⏮ Reset
+        </button>
+
+        <button
+          type="button"
+          class="btn-control"
+          [disabled]="!simulator.canStepBack()"
+          (click)="simulator.stepBackward()"
+          title="Step Backward"
+        >
+          ⏪ Prev Step
+        </button>
+
+        <button
+          type="button"
+          class="btn-control btn-play"
+          [class.playing]="simulator.isPlaying()"
+          (click)="simulator.togglePlay()"
+          title="Play / Pause Auto-step"
+        >
+          @if (simulator.isPlaying()) {
+            ⏸ Pause
+          } @else {
+            ▶ Play
+          }
+        </button>
+
+        <button
+          type="button"
+          class="btn-control"
+          [disabled]="!simulator.canStepForward()"
+          (click)="simulator.stepForward()"
+          title="Step Forward"
+        >
+          ⏩ Next Step
+        </button>
+      </div>
+
+      <!-- Playback Speed Pills -->
+      <div class="speed-controls">
+        <span class="speed-label">Speed:</span>
+        <button
+          type="button"
+          class="speed-pill"
+          [class.active]="simulator.playbackSpeedMs() === 1500"
+          (click)="simulator.setSpeed(1500)"
+        >
+          0.5x (Slow)
+        </button>
+        <button
+          type="button"
+          class="speed-pill"
+          [class.active]="simulator.playbackSpeedMs() === 800"
+          (click)="simulator.setSpeed(800)"
+        >
+          1x (Normal)
+        </button>
+        <button
+          type="button"
+          class="speed-pill"
+          [class.active]="simulator.playbackSpeedMs() === 350"
+          (click)="simulator.setSpeed(350)"
+        >
+          2x (Fast)
+        </button>
+      </div>
+
+      <!-- Step Counter & Progress -->
+      <div class="step-counter-box">
+        <span class="step-counter-text">
+          Step {{ simulator.currentStepIndex() + 1 }} of {{ simulator.totalSteps() }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar-container">
+      <div
+        class="progress-bar-fill"
+        [style.width.%]="progressPercentage()"
+      ></div>
+    </div>
+
+    <!-- Event Loop Phase Ribbon -->
+    <div class="phase-ribbon">
+      <div
+        class="phase-node"
+        [class.active]="simulator.currentPhase() === 'synchronous'"
+      >
+        <span class="phase-number">1</span>
+        <span class="phase-name">Call Stack (Sync)</span>
+      </div>
+      <div class="phase-arrow">➔</div>
+      <div
+        class="phase-node"
+        [class.active]="simulator.currentPhase() === 'microtask'"
+      >
+        <span class="phase-number">2</span>
+        <span class="phase-name">Microtask Queue (asap)</span>
+      </div>
+      <div class="phase-arrow">➔</div>
+      <div
+        class="phase-node"
+        [class.active]="simulator.currentPhase() === 'render'"
+      >
+        <span class="phase-number">3</span>
+        <span class="phase-name">Render / Vsync (rAF)</span>
+      </div>
+      <div class="phase-arrow">➔</div>
+      <div
+        class="phase-node"
+        [class.active]="simulator.currentPhase() === 'macrotask'"
+      >
+        <span class="phase-number">4</span>
+        <span class="phase-name">Macrotask Queue (async)</span>
+      </div>
+    </div>
+
+    <!-- Active Step Explanation Banner -->
+    <div class="step-explanation-card" [ngClass]="'phase-' + simulator.currentPhase()">
+      <div class="explanation-header">
+        <span class="phase-badge">{{ simulator.phaseTitle() }}</span>
+        @if (simulator.currentStep(); as step) {
+          <span class="action-badge action-{{ step.action }}">
+            {{ step.action.replace('_', ' ').toUpperCase() }}
+          </span>
+        }
+      </div>
+      <p class="explanation-body">{{ simulator.explanation() }}</p>
+    </div>
+
+    <!-- Event Loop Arena (Grid of Call Stack & Queues) -->
+    <div class="event-loop-arena">
+      <!-- Left Column: Synchronous Call Stack & Trampoline -->
+      <div class="arena-column call-stack-column">
+        <div class="column-card call-stack-card">
+          <div class="column-header">
+            <h3>⚡ Call Stack (LIFO)</h3>
+            <span class="badge-count">Depth: {{ simulator.callStack().length }}</span>
+          </div>
+
+          <div class="stack-container">
+            @if (simulator.callStack().length === 0) {
+              <div class="empty-state-notice">
+                <span class="empty-icon">🟢</span>
+                <span>Call Stack is EMPTY</span>
+                <span class="subtext">Ready to dequeue from event loop queues</span>
+              </div>
+            } @else {
+              <div class="stack-frames">
+                @for (frame of simulator.callStack(); track frame.id) {
+                  <div class="stack-frame-item active" [ngClass]="getSchedulerClass(frame.scheduler)">
+                    <div class="frame-info">
+                      <span class="frame-name">{{ frame.name }}</span>
+                      <span class="frame-badge">{{ getSchedulerBadge(frame.scheduler) }}</span>
+                    </div>
+                    <span class="executing-glow">EXECUTING</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Trampoline Queue -->
+        <div class="column-card trampoline-card">
+          <div class="column-header">
+            <h3>🔄 Trampoline Queue</h3>
+            <span class="badge-count">{{ simulator.trampolineQueue().length }} pending</span>
+          </div>
+          <div class="queue-container">
+            @if (simulator.trampolineQueue().length === 0) {
+              <div class="empty-queue-text">Trampoline queue empty</div>
+            } @else {
+              <div class="queue-items">
+                @for (item of simulator.trampolineQueue(); track item.id) {
+                  <div class="queue-item-chip chip-queue">
+                    <span class="item-name">{{ item.name }}</span>
+                    @if (item.recursionDepth) {
+                      <span class="depth-tag">depth {{ item.recursionDepth }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Asynchronous Concurrency Queues -->
+      <div class="arena-column async-queues-column">
+        <!-- 1. Microtask Queue -->
+        <div class="column-card queue-card-microtask">
+          <div class="column-header">
+            <h3>🔬 Microtask Queue (asapScheduler / Promise)</h3>
+            <span class="badge-count microtask-count">{{ simulator.microtaskQueue().length }}</span>
+          </div>
+          <p class="queue-hint">Executes immediately after call stack empties, before macrotasks.</p>
+          <div class="conveyor-container">
+            @if (simulator.microtaskQueue().length === 0) {
+              <div class="empty-queue-text">Microtask queue empty</div>
+            } @else {
+              <div class="conveyor-items">
+                @for (item of simulator.microtaskQueue(); track item.id) {
+                  <div class="queue-item-chip chip-asap">
+                    <span class="item-icon">⚡</span>
+                    <span class="item-name">{{ item.name }}</span>
+                    <span class="priority-tag">FIFO</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- 2. Render Queue -->
+        <div class="column-card queue-card-render">
+          <div class="column-header">
+            <h3>🎨 Render Frame Queue (animationFrame / 60fps)</h3>
+            <span class="badge-count render-count">{{ simulator.renderQueue().length }}</span>
+          </div>
+          <p class="queue-hint">Fires prior to screen repaint on hardware vsync boundaries (~16.6ms).</p>
+          <div class="conveyor-container">
+            @if (simulator.renderQueue().length === 0) {
+              <div class="empty-queue-text">Render queue empty</div>
+            } @else {
+              <div class="conveyor-items">
+                @for (item of simulator.renderQueue(); track item.id) {
+                  <div class="queue-item-chip chip-raf">
+                    <span class="item-icon">🎯</span>
+                    <span class="item-name">{{ item.name }}</span>
+                    <span class="vsync-tag">Vsync</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- 3. Macrotask Queue -->
+        <div class="column-card queue-card-macrotask">
+          <div class="column-header">
+            <h3>⏳ Macrotask Queue (asyncScheduler / setTimeout)</h3>
+            <span class="badge-count macrotask-count">{{ simulator.macrotaskQueue().length }}</span>
+          </div>
+          <p class="queue-hint">Timer-based tasks dispatched when microtasks and render cycle complete.</p>
+          <div class="conveyor-container">
+            @if (simulator.macrotaskQueue().length === 0) {
+              <div class="empty-queue-text">Macrotask queue empty</div>
+            } @else {
+              <div class="conveyor-items">
+                @for (item of simulator.macrotaskQueue(); track item.id) {
+                  <div class="queue-item-chip chip-async" [class.cancelled]="item.status === 'cancelled'">
+                    <span class="item-icon">⏱️</span>
+                    <span class="item-name">{{ item.name }}</span>
+                    @if (item.delayMs !== undefined) {
+                      <span class="delay-tag">{{ item.delayMs }}ms</span>
+                    }
+                    @if (item.status === 'cancelled') {
+                      <span class="cancel-tag">CANCELLED</span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scenario Code & Live Console Output Section -->
+    <div class="execution-output-section">
+      <div class="code-column">
+        <app-code-block
+          [title]="simulator.activeScenario().name + ' (Step ' + (simulator.currentStepIndex() + 1) + ')'"
+          [code]="simulator.activeScenario().codeSnippet"
+          language="typescript"
+          [highlightLines]="simulator.codeLineHighlight() ? [simulator.codeLineHighlight()!] : []"
+        />
+      </div>
+
+      <div class="console-column">
+        <app-output-console
+          title="Runtime Console Stdout"
+          [entries]="simulator.consoleLogs()"
+          [isStreaming]="simulator.isPlaying()"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-container">
+    <app-comparison-table [data]="comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-container">
+    <app-quiz-block
+      [questions]="quizQuestions"
+      topicId="schedulers-visualizer"
+      (completed)="onQuizCompleted($event)"
+    />
+  </div>
+</app-playground-wrapper>

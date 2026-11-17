@@ -1,0 +1,141 @@
+.shortcuts-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: var(--color-bg-overlay);
+  backdrop-filter: blur(8px);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+
+  .shortcuts-dialog {
+    width: 100%;
+    max-width: 520px;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg), 0 0 30px rgba(99, 102, 241, 0.2);
+    overflow: hidden;
+    animation: dialogFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+    .shortcuts-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--color-border-subtle);
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+
+        .icon {
+          font-size: 1.25rem;
+        }
+
+        h3 {
+          font-size: var(--font-size-base);
+          font-weight: var(--font-weight-bold);
+          color: var(--color-text-primary);
+          margin: 0;
+        }
+      }
+
+      .close-btn {
+        background: transparent;
+        border: none;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        font-size: var(--font-size-sm);
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--radius-sm);
+
+        &:hover {
+          color: var(--color-text-primary);
+          background-color: var(--color-bg-surface-elevated);
+        }
+      }
+    }
+
+    .shortcuts-body {
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      max-height: 60vh;
+      overflow-y: auto;
+
+      .shortcuts-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+
+        h4 {
+          font-size: var(--font-size-xs);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--color-primary-400);
+          margin: 0 0 var(--space-1) 0;
+        }
+
+        .shortcut-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: var(--space-2) var(--space-3);
+          border-radius: var(--radius-md);
+          background-color: var(--color-bg-base);
+
+          .action-desc {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+          }
+
+          .key-combo {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+
+            kbd {
+              padding: 2px 7px;
+              border-radius: 4px;
+              background-color: var(--color-bg-surface-elevated);
+              border: 1px solid var(--color-border-default);
+              color: var(--color-text-primary);
+              font-family: var(--font-mono);
+              font-size: 11px;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            }
+          }
+        }
+      }
+    }
+
+    .shortcuts-footer {
+      padding: var(--space-3) var(--space-5);
+      background-color: var(--color-bg-base);
+      border-top: 1px solid var(--color-border-subtle);
+
+      .footer-hint {
+        font-size: 11px;
+        color: var(--color-text-muted);
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

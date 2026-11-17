@@ -1,0 +1,329 @@
+<app-playground-wrapper
+  [title]="recipeData.title"
+  [subtitle]="recipeData.subtitle"
+  [category]="recipeData.category"
+  [difficulty]="recipeData.difficulty"
+  topicId="reactive-forms"
+  [(activeTab)]="activeTab"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-pane concept-pane">
+    <div class="concept-card highlight-card">
+      <div class="card-header">
+        <h3>⚡ The Auto-Save Reactive Pipeline</h3>
+      </div>
+      <p>{{ recipeData.description }}</p>
+      <div class="key-takeaways">
+        <div class="takeaway-item">
+          <span class="icon">⏱️</span>
+          <div>
+            <strong>debounceTime(400):</strong>
+            Buffers fast typing bursts and waits for a 400ms lull before emitting the latest value, eliminating hundreds of intermediate network requests (F40.1, F40.B1).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🔍</span>
+          <div>
+            <strong>distinctUntilChanged(deepEquals):</strong>
+            Suppresses auto-save triggers when the serialized values have not changed (e.g. typing a character and immediately deleting it) (F40.2, F40.B2).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🛡️</span>
+          <div>
+            <strong>filter(() => form.valid):</strong>
+            Guarantees that only structurally valid payloads ever proceed to the HTTP persistence layer (F40.3, F40.B3).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🔄</span>
+          <div>
+            <strong>switchMap(savePayload):</strong>
+            Immediately cancels in-flight HTTP PUT requests if the user resumes typing while a save is pending (F40.4).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-pane code-pane">
+    <div class="code-subtabs">
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'pipeline'"
+        (click)="codeSubTab.set('pipeline')"
+        type="button"
+      >
+        Complete Auto-Save Pipeline
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'crossField'"
+        (click)="codeSubTab.set('crossField')"
+        type="button"
+      >
+        Cross-Field Dynamic Cascading
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'validation'"
+        (click)="codeSubTab.set('validation')"
+        type="button"
+      >
+        Nested Form & Capacity
+      </button>
+    </div>
+
+    @if (codeSubTab() === 'pipeline') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['pipeline'].code"
+        [title]="recipeData.codeSnippets['pipeline'].title"
+        language="typescript"
+      />
+    }
+    @if (codeSubTab() === 'crossField') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['crossField'].code"
+        [title]="recipeData.codeSnippets['crossField'].title"
+        language="typescript"
+      />
+    }
+    @if (codeSubTab() === 'validation') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['validation'].code"
+        [title]="recipeData.codeSnippets['validation'].title"
+        language="typescript"
+      />
+    }
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-pane visual-pane">
+    <div class="forms-workbench">
+      <!-- Status & Telemetry Header -->
+      <div class="status-header-card">
+        <div class="status-pill-row">
+          <span class="status-indicator-pill" [class]="saveStatus()" data-testid="autosave-status-pill">
+            @switch (saveStatus()) {
+              @case ('pristine') { <span>⚪ Pristine (Up to date)</span> }
+              @case ('typing') { <span>🟡 Typing... debouncing {{ debounceDurationMs() }}ms</span> }
+              @case ('saving') { <span>🔵 Saving to Express backend...</span> }
+              @case ('saved') { <span>🟢 Saved successfully</span> }
+              @case ('error') { <span>🔴 Validation Error / Offline Fallback</span> }
+            }
+          </span>
+          @if (lastSavedAt()) {
+            <span class="last-saved-time">
+              Last saved: {{ lastSavedAt() | date:'mediumTime' }}
+            </span>
+          }
+        </div>
+
+        <div class="telemetry-bar">
+          <div class="telemetry-item" data-testid="telemetry-keystrokes">
+            <span class="tel-label">Keystrokes / Edits</span>
+            <span class="tel-value">{{ telemetry().keystrokesCount }}</span>
+          </div>
+          <div class="telemetry-item" data-testid="telemetry-requests">
+            <span class="tel-label">HTTP PUT Requests</span>
+            <span class="tel-value highlight">{{ telemetry().httpRequestsCount }}</span>
+          </div>
+          <div class="telemetry-item" data-testid="telemetry-efficiency">
+            <span class="tel-label">Network Traffic Saved</span>
+            <span class="tel-value success">{{ efficiencyPercentage() }}%</span>
+          </div>
+          <div class="telemetry-item" data-testid="telemetry-cancelled">
+            <span class="tel-label">Cancelled by switchMap</span>
+            <span class="tel-value warning">{{ telemetry().cancelledRequestsCount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scrubber & Main Form Layout -->
+      <div class="form-layout-container">
+        <!-- Main Reactive Form -->
+        <form [formGroup]="form" class="editor-form-card" data-testid="reactive-course-form">
+          <div class="form-section-header">
+            <h4>📝 Course Metadata Editor</h4>
+            <div class="autosave-toggle-wrapper">
+              <label class="toggle-label">
+                <input
+                  type="checkbox"
+                  formControlName="autoSaveEnabled"
+                  data-testid="form-autosave-toggle"
+                />
+                Auto-Save Enabled
+              </label>
+            </div>
+          </div>
+
+          <!-- Title Field -->
+          <div class="form-group">
+            <label for="course-title">Course Title (Min 3 chars)</label>
+            <input
+              id="course-title"
+              type="text"
+              formControlName="title"
+              class="form-input"
+              data-testid="form-title-input"
+              placeholder="e.g. RxJS Masterclass"
+            />
+            @if (form.get('title')?.touched && form.get('title')?.invalid) {
+              <div class="field-error">Title is required and must have at least 3 characters.</div>
+            }
+          </div>
+
+          <!-- Category & Subcategory Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="course-category">Primary Category</label>
+              <select
+                id="course-category"
+                formControlName="category"
+                class="form-select"
+                data-testid="form-category-select"
+              >
+                <option value="Frontend">Frontend</option>
+                <option value="Backend">Backend</option>
+                <option value="DevOps">DevOps</option>
+                <option value="Mobile">Mobile</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="course-subcategory">Dependent Sub-Category (F40.5)</label>
+              <select
+                id="course-subcategory"
+                formControlName="subCategory"
+                class="form-select"
+                data-testid="form-subcategory-select"
+              >
+                @for (sub of subCategories(); track sub + '-' + $index) {
+                  <option [value]="sub">{{ sub }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Description (Capacity 10,000 chars) -->
+          <div class="form-group">
+            <div class="label-with-counter">
+              <label for="course-desc">Course Curriculum & Details (F40.B1)</label>
+              <span class="char-count">{{ form.get('description')?.value?.length || 0 }} / 10,000</span>
+            </div>
+            <textarea
+              id="course-desc"
+              rows="4"
+              formControlName="description"
+              class="form-textarea"
+              data-testid="form-description-input"
+              placeholder="Describe curriculum, objectives, and prerequisites..."
+            ></textarea>
+            @if (form.get('description')?.invalid) {
+              <div class="field-error">Description is required (maximum 10,000 characters).</div>
+            }
+          </div>
+
+          <!-- Difficulty -->
+          <div class="form-group">
+            <label>Target Audience Difficulty</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" value="beginner" formControlName="difficulty" />
+                Beginner
+              </label>
+              <label class="radio-label">
+                <input type="radio" value="intermediate" formControlName="difficulty" />
+                Intermediate
+              </label>
+              <label class="radio-label">
+                <input type="radio" value="advanced" formControlName="difficulty" />
+                Advanced
+              </label>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions-toolbar">
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="forceSaveNow()"
+              [disabled]="form.invalid"
+              data-testid="manual-save-btn"
+            >
+              💾 Manual Save Now
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary btn-outline"
+              (click)="resetForm()"
+              data-testid="reset-form-btn"
+            >
+              Reset Form
+            </button>
+          </div>
+        </form>
+
+        <!-- Sidebar Tuning & Scrubber -->
+        <div class="sidebar-tuning-card">
+          <h4>🎛️ Pipeline Parameters</h4>
+
+          <div class="tuning-section">
+            <label for="debounce-scrubber">
+              Debounce Time: <strong>{{ debounceDurationMs() }}ms</strong>
+            </label>
+            <input
+              id="debounce-scrubber"
+              type="range"
+              min="100"
+              max="2000"
+              step="50"
+              [ngModel]="debounceDurationMs()"
+              (ngModelChange)="onDebounceChange($event)"
+              class="slider"
+              data-testid="debounce-slider"
+            />
+            <div class="slider-ticks">
+              <span>100ms (Fast)</span>
+              <span>400ms (Ideal)</span>
+              <span>2000ms (Slow)</span>
+            </div>
+          </div>
+
+          <div class="rule-callout">
+            <strong>💡 Pipeline Invariants:</strong>
+            <ul>
+              <li><strong>Typing:</strong> Triggers status 'typing' immediately.</li>
+              <li><strong>Debounce:</strong> Holds emissions until {{ debounceDurationMs() }}ms of quiet inactivity.</li>
+              <li><strong>Distinct:</strong> Compares stringified JSON snapshot.</li>
+              <li><strong>Filter:</strong> Only passes if form.valid === true.</li>
+              <li><strong>switchMap:</strong> Automatically aborts previous save if user starts typing again.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Output Console -->
+    <div class="console-section">
+      <app-output-console
+        title="Reactive Forms Auto-Save Log"
+        [entries]="consoleEntries()"
+        (clear)="clearConsole()"
+      />
+    </div>
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-pane comparison-pane">
+    <app-comparison-table [data]="comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-pane quiz-pane">
+    <app-quiz-block [questions]="quizzes" topicId="reactive-forms" />
+  </div>
+</app-playground-wrapper>

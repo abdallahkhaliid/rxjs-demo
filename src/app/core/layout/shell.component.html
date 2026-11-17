@@ -1,0 +1,22 @@
+<div class="app-shell">
+  <div class="app-topbar">
+    <app-topbar (toggleSidenav)="toggleSidenav()" />
+  </div>
+
+  <div class="app-body">
+    <div class="app-sidenav">
+      <app-sidenav [isOpen]="isSidenavOpen()" (closeSidenav)="closeSidenav()" />
+    </div>
+
+    <main class="app-content">
+      <app-breadcrumbs />
+      <div class="app-viewport">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+
+  <!-- Global Modals mounted at Shell level -->
+  <app-search-palette />
+  <app-shortcuts-dialog />
+</div>

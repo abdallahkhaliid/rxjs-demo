@@ -1,0 +1,251 @@
+<app-playground-wrapper
+  [title]="config.title"
+  [subtitle]="config.subtitle"
+  [category]="config.category"
+  [difficulty]="config.difficulty"
+  [topicId]="config.id"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+  [(activeTab)]="activeTab"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-container concept-panel">
+    <div class="concept-summary-card">
+      <p class="summary-text">{{ config.conceptSummary }}</p>
+    </div>
+
+    @if (config.conceptPillars && config.conceptPillars.length > 0) {
+      <div class="pillars-section">
+        <h3 class="section-heading">State Management Patterns</h3>
+        <div class="pillars-grid">
+          @for (pillar of config.conceptPillars; track pillar.title) {
+            <div class="pillar-card">
+              <h4 class="pillar-title">{{ pillar.title }}</h4>
+              <p class="pillar-desc">{{ pillar.description }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (config.conceptSections && config.conceptSections.length > 0) {
+      <div class="deep-dive-section">
+        @for (sec of config.conceptSections; track sec.title) {
+          <div class="deep-dive-card">
+            <h4>{{ sec.title }}</h4>
+            <p>{{ sec.content }}</p>
+          </div>
+        }
+      </div>
+    }
+
+    @if (config.takeaways && config.takeaways.length > 0) {
+      <div class="takeaways-card">
+        <h4>💡 Key Takeaways</h4>
+        <ul>
+          @for (item of config.takeaways; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-container">
+    <app-code-block
+      [title]="config.codeTitle"
+      [code]="config.codeSnippet"
+      language="typescript"
+      [highlightLines]="[2, 7, 12, 14, 21, 25, 27]"
+    />
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-container visual-demo-container">
+    @if (orderReceipt()) {
+      <div class="receipt-banner">
+        <span class="receipt-icon">🎉</span>
+        <div class="receipt-text">
+          <strong>Thank You For Your Order!</strong>
+          <p>{{ orderReceipt() }}</p>
+        </div>
+      </div>
+    }
+
+    <div class="ecommerce-layout">
+      <!-- Left: Products Catalog -->
+      <div class="catalog-panel">
+        <div class="panel-header">
+          <h3>Course & Book Catalog</h3>
+          <span class="catalog-sub">{{ catalog.length }} items available</span>
+        </div>
+
+        <div class="products-grid">
+          @for (product of catalog; track product.id) {
+            <div class="product-card">
+              <div class="product-top">
+                <span class="product-icon">{{ product.icon }}</span>
+                @if (product.badge) {
+                  <span class="product-badge">{{ product.badge }}</span>
+                }
+              </div>
+
+              <div class="product-info">
+                <h4 class="product-name">{{ product.name }}</h4>
+                <p class="product-desc">{{ product.description }}</p>
+                <div class="product-rating">⭐ {{ product.rating }} / 5.0</div>
+              </div>
+
+              <div class="product-bottom">
+                <div class="price-box">
+                  <span class="price">${{ product.price }}</span>
+                  @if (product.originalPrice) {
+                    <span class="orig-price">${{ product.originalPrice }}</span>
+                  }
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-add"
+                  (click)="addToCart(product)"
+                >
+                  + Add to Cart
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Right: Cart & Summary -->
+      <div class="cart-panel">
+        <div class="panel-header">
+          <h3>Shopping Cart</h3>
+          <span class="cart-count-badge">{{ cartSummary().itemCount }} items</span>
+        </div>
+
+        @if (cartItems().length > 0) {
+          <div class="cart-items-list">
+            @for (item of cartItems(); track item.id) {
+              <div class="cart-item-row">
+                <span class="item-icon">{{ item.icon }}</span>
+                <div class="item-details">
+                  <span class="item-name">{{ item.name }}</span>
+                  <span class="item-unit-price">${{ item.price }} each</span>
+                </div>
+
+                <div class="qty-stepper">
+                  <button type="button" class="stepper-btn" (click)="decrementQty(item)">−</button>
+                  <span class="stepper-val">{{ item.qty }}</span>
+                  <button type="button" class="stepper-btn" (click)="incrementQty(item)">+</button>
+                </div>
+
+                <div class="item-total">
+                  ${{ (item.price * item.qty).toFixed(2) }}
+                </div>
+
+                <button
+                  type="button"
+                  class="btn-delete"
+                  title="Remove item"
+                  (click)="removeFromCart(item.id)"
+                >
+                  🗑️
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="cart-actions-bar">
+            <button type="button" class="btn btn-outline-danger" (click)="clearCart()">
+              Clear Cart
+            </button>
+          </div>
+        } @else {
+          <div class="cart-empty-state">
+            <span class="empty-cart-icon">🛒</span>
+            <p>Your reactive shopping cart is empty.</p>
+            <span class="empty-cart-sub">Click "Add to Cart" on any course to trigger the action reducer.</span>
+          </div>
+        }
+
+        <!-- Order Summary Card -->
+        <div class="order-summary-card">
+          <h4>Order Summary</h4>
+
+          <!-- Coupon input -->
+          <div class="coupon-box">
+            <div class="coupon-input-wrapper">
+              <input
+                type="text"
+                placeholder="Promo code (e.g., RXJS20)"
+                [formControl]="couponControl"
+                (keyup.enter)="applyCoupon()"
+              />
+              <button type="button" class="btn btn-secondary" (click)="applyCoupon()">Apply</button>
+            </div>
+            <div class="quick-coupons">
+              <span class="quick-label">Try code:</span>
+              <button type="button" class="coupon-chip" (click)="selectQuickCoupon('RXJS20')">RXJS20 (-20%)</button>
+              <button type="button" class="coupon-chip" (click)="selectQuickCoupon('DEV50')">DEV50 (-50%)</button>
+            </div>
+          </div>
+
+          <!-- Pricing lines -->
+          <div class="summary-breakdown">
+            <div class="summary-line">
+              <span>Subtotal</span>
+              <span>${{ cartSummary().subtotal.toFixed(2) }}</span>
+            </div>
+
+            @if (cartSummary().discount > 0) {
+              <div class="summary-line discount-line">
+                <span>Discount ({{ cartSummary().appliedCoupon }} -{{ (cartSummary().discountRate * 100).toFixed(0) }}%)</span>
+                <span>−${{ cartSummary().discount.toFixed(2) }}</span>
+              </div>
+            }
+
+            <div class="summary-line">
+              <span>Estimated Tax (8%)</span>
+              <span>${{ cartSummary().tax.toFixed(2) }}</span>
+            </div>
+
+            <div class="summary-line total-line">
+              <span>Total</span>
+              <span>${{ cartSummary().total.toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-checkout"
+            [disabled]="cartItems().length === 0 || isCheckingOut()"
+            (click)="checkout()"
+          >
+            @if (isCheckingOut()) {
+              Processing Order...
+            } @else {
+              Proceed to Checkout (${{ cartSummary().total.toFixed(2) }})
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output console -->
+    <app-output-console
+      title="Cart Action Stream & Calculation Log"
+      [entries]="consoleEntries()"
+      (clear)="clearConsole()"
+    />
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-container">
+    <app-comparison-table [data]="config.comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-container">
+    <app-quiz-block [questions]="config.quizQuestions" [topicId]="config.id" />
+  </div>
+</app-playground-wrapper>

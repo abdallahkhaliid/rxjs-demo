@@ -1,0 +1,32 @@
+diff --git a/src/app/shared/components/output-console/output-console.component.ts b/src/app/shared/components/output-console/output-console.component.ts
+--- a/src/app/shared/components/output-console/output-console.component.ts
++++ b/src/app/shared/components/output-console/output-console.component.ts
+@@ -63,13 +63,13 @@ export class OutputConsoleComponent {
+   async copyLogs(): Promise<void> {
++    try {
+       const lines = this.visibleEntries().map(e => {
+         const time = `+${e.relativeMs}ms`;
+         const stream = e.streamName ? `[${e.streamName}] ` : '';
+-        const val = e.value !== undefined ? (typeof e.value === 'object' ? JSON.stringify(e.value) : e.value) : '';
++        const val = this.formatValue(e.value);
+         return `${time} ${stream}[${e.type.toUpperCase()}] ${val} ${e.description ?? ''}`;
+       }).join('\n');
+ 
+-    try {
+       if (typeof navigator !== 'undefined' && navigator.clipboard) {
+         await navigator.clipboard.writeText(lines);
+         this.copied.set(true);
+@@ -87,7 +87,11 @@ export class OutputConsoleComponent {
+     if (typeof val === 'object') {
+       try {
+         return JSON.stringify(val);
+       } catch {
+-        return String(val);
++        try {
++          return String(val);
++        } catch {
++          return '[Unserializable Object]';
++        }
+       }
+     }
+     return String(val);

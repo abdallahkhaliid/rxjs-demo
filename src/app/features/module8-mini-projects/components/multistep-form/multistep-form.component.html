@@ -1,0 +1,331 @@
+<app-playground-wrapper
+  [title]="config.title"
+  [subtitle]="config.subtitle"
+  [category]="config.category"
+  [difficulty]="config.difficulty"
+  [topicId]="config.id"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+  [(activeTab)]="activeTab"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-container concept-panel">
+    <div class="concept-summary-card">
+      <p class="summary-text">{{ config.conceptSummary }}</p>
+    </div>
+
+    @if (config.conceptPillars && config.conceptPillars.length > 0) {
+      <div class="pillars-section">
+        <h3 class="section-heading">Form Architecture Foundations</h3>
+        <div class="pillars-grid">
+          @for (pillar of config.conceptPillars; track pillar.title) {
+            <div class="pillar-card">
+              <h4 class="pillar-title">{{ pillar.title }}</h4>
+              <p class="pillar-desc">{{ pillar.description }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (config.conceptSections && config.conceptSections.length > 0) {
+      <div class="deep-dive-section">
+        @for (sec of config.conceptSections; track sec.title) {
+          <div class="deep-dive-card">
+            <h4>{{ sec.title }}</h4>
+            <p>{{ sec.content }}</p>
+          </div>
+        }
+      </div>
+    }
+
+    @if (config.takeaways && config.takeaways.length > 0) {
+      <div class="takeaways-card">
+        <h4>💡 Key Takeaways</h4>
+        <ul>
+          @for (item of config.takeaways; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-container">
+    <app-code-block
+      [title]="config.codeTitle"
+      [code]="config.codeSnippet"
+      language="typescript"
+      [highlightLines]="[2, 3, 15, 17, 23]"
+    />
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-container visual-demo-container">
+    @if (isSubmitted()) {
+      <!-- Confirmation / Receipt Screen -->
+      <div class="confirmation-panel">
+        <div class="confirmation-icon">✨</div>
+        <h3>Registration Completed Successfully!</h3>
+        <p>Your multi-step form registration was submitted via exhaustMap without double-submission errors.</p>
+
+        <div class="submitted-data-preview">
+          <h4>Submitted Payload</h4>
+          <pre><code>{{ formData() | json }}</code></pre>
+        </div>
+
+        <button type="button" class="btn btn-primary" (click)="resetWizard()">
+          🔄 Start Another Registration
+        </button>
+      </div>
+    } @else {
+      <!-- Multi-step Form Wizard Container -->
+      <div class="wizard-card">
+        <!-- Wizard Stepper Indicator -->
+        <div class="stepper-nav">
+          <div
+            class="step-item"
+            [class.active]="formData().currentStep === 1"
+            [class.completed]="formData().completedSteps[1]"
+            (click)="goToStep(1)"
+          >
+            <div class="step-num">{{ formData().completedSteps[1] ? '✓' : '1' }}</div>
+            <div class="step-meta">
+              <span class="step-title">Account Info</span>
+              <span class="step-sub">Username & Email</span>
+            </div>
+          </div>
+
+          <div class="step-connector" [class.active]="formData().completedSteps[1]"></div>
+
+          <div
+            class="step-item"
+            [class.active]="formData().currentStep === 2"
+            [class.completed]="formData().completedSteps[2]"
+            (click)="goToStep(2)"
+          >
+            <div class="step-num">{{ formData().completedSteps[2] ? '✓' : '2' }}</div>
+            <div class="step-meta">
+              <span class="step-title">Role & Topics</span>
+              <span class="step-sub">Dynamic Fields</span>
+            </div>
+          </div>
+
+          <div class="step-connector" [class.active]="formData().completedSteps[2]"></div>
+
+          <div
+            class="step-item"
+            [class.active]="formData().currentStep === 3"
+            [class.completed]="formData().completedSteps[3]"
+            (click)="goToStep(3)"
+          >
+            <div class="step-num">{{ formData().completedSteps[3] ? '✓' : '3' }}</div>
+            <div class="step-meta">
+              <span class="step-title">Review & Submit</span>
+              <span class="step-sub">exhaustMap Guard</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Draft Status Bar -->
+        <div class="draft-status-bar">
+          <span class="draft-indicator">💾</span>
+          <span class="draft-text">{{ draftStatus() }}</span>
+        </div>
+
+        <!-- Step 1 View: Account Info -->
+        @if (formData().currentStep === 1) {
+          <div class="step-content" [formGroup]="formStep1">
+            <h4>Step 1: Account Information</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="username">Username (min 3 chars)*</label>
+                <input
+                  id="username"
+                  type="text"
+                  formControlName="username"
+                  placeholder="e.g., alice_dev"
+                />
+                @if (formStep1.get('username')?.touched && formStep1.get('username')?.errors) {
+                  <span class="error-msg">Username must be at least 3 characters.</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label for="email">Email Address*</label>
+                <input
+                  id="email"
+                  type="email"
+                  formControlName="email"
+                  placeholder="e.g., alice@angular.io"
+                />
+                @if (formStep1.get('email')?.touched && formStep1.get('email')?.errors) {
+                  <span class="error-msg">Please enter a valid email address.</span>
+                }
+              </div>
+
+              <div class="form-group span-2">
+                <label for="fullname">Full Name*</label>
+                <input
+                  id="fullname"
+                  type="text"
+                  formControlName="fullName"
+                  placeholder="e.g., Alice Developer"
+                />
+              </div>
+            </div>
+
+            <div class="step-actions right">
+              <button
+                type="button"
+                class="btn btn-primary"
+                [disabled]="!formStep1.valid"
+                (click)="next()"
+              >
+                Next Step: Role & Preferences →
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Step 2 View: Role & Topics -->
+        @if (formData().currentStep === 2) {
+          <div class="step-content" [formGroup]="formStep2">
+            <h4>Step 2: Role & Learning Tracks</h4>
+
+            <div class="form-group">
+              <label>Select Your RxJS Proficiency Level:</label>
+              <div class="role-selector-grid">
+                <label class="role-card" [class.selected]="formStep2.get('role')?.value === 'beginner'">
+                  <input type="radio" formControlName="role" value="beginner" />
+                  <div class="role-card-content">
+                    <span class="role-name">Beginner</span>
+                    <span class="role-sub">Observables, creation, basic operators</span>
+                  </div>
+                </label>
+
+                <label class="role-card" [class.selected]="formStep2.get('role')?.value === 'intermediate'">
+                  <input type="radio" formControlName="role" value="intermediate" />
+                  <div class="role-card-content">
+                    <span class="role-name">Intermediate</span>
+                    <span class="role-sub">Higher-order, multicasting, stores</span>
+                  </div>
+                </label>
+
+                <label class="role-card" [class.selected]="formStep2.get('role')?.value === 'advanced'">
+                  <input type="radio" formControlName="role" value="advanced" />
+                  <div class="role-card-content">
+                    <span class="role-name">Advanced</span>
+                    <span class="role-sub">Custom operators, schedulers, virtual time</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Available Topics for {{ formStep2.get('role')?.value | uppercase }}:</label>
+              <div class="topics-tags-grid">
+                @for (topic of availableTopics(); track topic) {
+                  @let isChecked = (formStep2.get('topics')?.value || []).includes(topic);
+                  <button
+                    type="button"
+                    class="topic-chip"
+                    [class.checked]="isChecked"
+                    (click)="toggleTopic(topic)"
+                  >
+                    {{ isChecked ? '✓' : '+' }} {{ topic }}
+                  </button>
+                }
+              </div>
+              @if (formStep2.get('topics')?.touched && (formStep2.get('topics')?.value?.length ?? 0) === 0) {
+                <span class="error-msg">Please select at least one learning topic.</span>
+              }
+            </div>
+
+            <div class="step-actions">
+              <button type="button" class="btn btn-secondary" (click)="back()">
+                ← Back
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                [disabled]="!formStep2.valid"
+                (click)="next()"
+              >
+                Next Step: Review & Confirm →
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Step 3 View: Review & Submit -->
+        @if (formData().currentStep === 3) {
+          <div class="step-content" [formGroup]="formStep3">
+            <h4>Step 3: Review Registration Details</h4>
+
+            <div class="review-grid">
+              <div class="review-box">
+                <h5>Account Information</h5>
+                <p><strong>Username:</strong> {{ formData().step1.username }}</p>
+                <p><strong>Email:</strong> {{ formData().step1.email }}</p>
+                <p><strong>Full Name:</strong> {{ formData().step1.fullName }}</p>
+              </div>
+
+              <div class="review-box">
+                <h5>Selected Track</h5>
+                <p><strong>Role:</strong> {{ formData().step2.role | uppercase }}</p>
+                <p><strong>Topics:</strong> {{ formData().step2.topics.join(', ') || 'None' }}</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label terms-label">
+                <input type="checkbox" formControlName="agreedToTerms" />
+                <span>I agree to the reactive learning platform terms and code of conduct*</span>
+              </label>
+              @if (formStep3.get('agreedToTerms')?.touched && !formStep3.get('agreedToTerms')?.value) {
+                <span class="error-msg">You must accept the terms before submitting.</span>
+              }
+            </div>
+
+            <div class="step-actions">
+              <button type="button" class="btn btn-secondary" (click)="back()">
+                ← Back
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-submit"
+                [disabled]="!formStep3.valid || isSubmitting()"
+                (click)="submitForm()"
+              >
+                @if (isSubmitting()) {
+                  <span>Submitting (exhaustMap locked)...</span>
+                } @else {
+                  <span>✓ Complete Registration</span>
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Output console -->
+    <app-output-console
+      title="Form Wizard Events & Autosave Log"
+      [entries]="consoleEntries()"
+      (clear)="clearConsole()"
+    />
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-container">
+    <app-comparison-table [data]="config.comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-container">
+    <app-quiz-block [questions]="config.quizQuestions" [topicId]="config.id" />
+  </div>
+</app-playground-wrapper>

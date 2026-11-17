@@ -1,0 +1,88 @@
+/* Highlight.js Dark Theme for RxJS Platform */
+.hljs {
+  color: #e2e8f0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst {
+  color: var(--color-accent-magenta);
+  font-weight: 500;
+}
+
+.hljs-string,
+.hljs-title.class_,
+.hljs-section,
+.hljs-attribute,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: #34d399; /* Emerald */
+}
+
+.hljs-type,
+.hljs-built_in,
+.hljs-builtin-name {
+  color: var(--color-accent-cyan);
+}
+
+.hljs-number,
+.hljs-literal {
+  color: #fbbf24; /* Amber */
+}
+
+.hljs-number {
+  color: #f59e0b;
+}
+
+.hljs-function .hljs-title,
+.hljs-title.function_ {
+  color: var(--color-primary-400);
+}
+
+.hljs-params {
+  color: #cbd5e1;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.hljs-variable,
+.hljs-variable.language_ {
+  color: #f87171;
+}
+
+.hljs-property {
+  color: #a5b4fc;
+}
+
+.hljs-attr {
+  color: #67e8f9;
+}
+
+.hljs-tag {
+  color: #94a3b8;
+}
+
+.hljs-name {
+  color: var(--color-accent-magenta);
+}
+
+.hljs-punctuation,
+.hljs-operator {
+  color: #94a3b8;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}

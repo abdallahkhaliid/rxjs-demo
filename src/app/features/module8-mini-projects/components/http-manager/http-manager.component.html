@@ -1,0 +1,188 @@
+<app-playground-wrapper
+  [title]="config.title"
+  [subtitle]="config.subtitle"
+  [category]="config.category"
+  [difficulty]="config.difficulty"
+  [topicId]="config.id"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+  [(activeTab)]="activeTab"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-container concept-panel">
+    <div class="concept-summary-card">
+      <p class="summary-text">{{ config.conceptSummary }}</p>
+    </div>
+
+    @if (config.conceptPillars && config.conceptPillars.length > 0) {
+      <div class="pillars-section">
+        <h3 class="section-heading">4 Flattening Strategies</h3>
+        <div class="pillars-grid">
+          @for (pillar of config.conceptPillars; track pillar.title) {
+            <div class="pillar-card">
+              <h4 class="pillar-title">{{ pillar.title }}</h4>
+              <p class="pillar-desc">{{ pillar.description }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (config.conceptSections && config.conceptSections.length > 0) {
+      <div class="deep-dive-section">
+        @for (sec of config.conceptSections; track sec.title) {
+          <div class="deep-dive-card">
+            <h4>{{ sec.title }}</h4>
+            <p>{{ sec.content }}</p>
+          </div>
+        }
+      </div>
+    }
+
+    @if (config.takeaways && config.takeaways.length > 0) {
+      <div class="takeaways-card">
+        <h4>💡 Key Takeaways</h4>
+        <ul>
+          @for (item of config.takeaways; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-container">
+    <app-code-block
+      [title]="config.codeTitle"
+      [code]="config.codeSnippet"
+      language="typescript"
+      [highlightLines]="[2, 7, 12, 17]"
+    />
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-container visual-demo-container">
+    <!-- Controls Bar -->
+    <div class="benchmark-toolbar">
+      <div class="config-controls">
+        <div class="control-group">
+          <label for="batch-size">Burst Size: <strong>{{ batchSizeControl.value }} Requests</strong></label>
+          <select id="batch-size" [formControl]="batchSizeControl">
+            <option [value]="4">4 Rapid Requests</option>
+            <option [value]="8">8 Rapid Requests</option>
+            <option [value]="10">10 Rapid Requests</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="delay-slider">Request Latency: <strong>{{ delayControl.value }}ms</strong></label>
+          <input
+            id="delay-slider"
+            type="range"
+            min="200"
+            max="1500"
+            step="100"
+            [formControl]="delayControl"
+          />
+        </div>
+      </div>
+
+      <div class="trigger-buttons">
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="isRunningAll()"
+          (click)="runAllStrategies()"
+        >
+          🚀 Run 4-Way Comparison
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="resetAll()">Reset</button>
+      </div>
+    </div>
+
+    <!-- 4 Strategy Swimlanes Grid -->
+    <div class="strategies-grid">
+      @for (strategy of strategies; track strategy) {
+        @let res = benchmarkResults()[strategy];
+        <div class="strategy-swimlane" [class.running]="res.isRunning">
+          <div class="swimlane-header">
+            <div class="strategy-title">
+              <span class="operator-code">{{ strategy }}</span>
+              <span class="badge-status" [class.active]="res.isRunning">
+                {{ res.isRunning ? 'Executing...' : res.requests.length > 0 ? 'Done' : 'Ready' }}
+              </span>
+            </div>
+            <button
+              type="button"
+              class="btn-mini-run"
+              [disabled]="res.isRunning"
+              (click)="runStrategyBenchmark(strategy)"
+            >
+              ▶ Test Alone
+            </button>
+          </div>
+
+          <!-- Request items list -->
+          <div class="requests-timeline">
+            @if (res.requests.length > 0) {
+              @for (req of res.requests; track req.id) {
+                <div class="request-row" [class]="'status-' + req.status">
+                  <span class="req-tag">{{ req.tag }}</span>
+                  <div class="req-bar-container">
+                    <div class="req-status-badge">{{ req.status.toUpperCase() }}</div>
+                    @if (req.durationMs) {
+                      <span class="duration-tag">{{ req.durationMs }}ms</span>
+                    }
+                  </div>
+                </div>
+              }
+            } @else {
+              <div class="empty-lane">
+                <span>Click "Run 4-Way Comparison" to start burst</span>
+              </div>
+            }
+          </div>
+
+          <!-- Swimlane metrics footer -->
+          <div class="swimlane-metrics">
+            <div class="stat-pill success">
+              <span class="label">Completed:</span>
+              <span class="val">{{ res.completedCount }}</span>
+            </div>
+            <div class="stat-pill cancelled">
+              <span class="label">Cancelled:</span>
+              <span class="val">{{ res.cancelledCount }}</span>
+            </div>
+            <div class="stat-pill ignored">
+              <span class="label">Ignored:</span>
+              <span class="val">{{ res.ignoredCount }}</span>
+            </div>
+            @if (res.totalElapsedMs > 0) {
+              <div class="stat-pill total-time">
+                <span class="label">Total Time:</span>
+                <span class="val">{{ res.totalElapsedMs }}ms</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Output console -->
+    <app-output-console
+      title="HTTP Flattening Benchmark Output"
+      [entries]="consoleEntries()"
+      (clear)="clearConsole()"
+    />
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-container">
+    <app-comparison-table [data]="config.comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-container">
+    <app-quiz-block [questions]="config.quizQuestions" [topicId]="config.id" />
+  </div>
+</app-playground-wrapper>

@@ -1,0 +1,241 @@
+@if (config(); as data) {
+  <app-playground-wrapper
+    [title]="data.metadata.name + '()'"
+    [subtitle]="data.metadata.summary"
+    category="Creation Operators"
+    [difficulty]="data.metadata.difficulty"
+    [topicId]="data.id"
+    [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+    [(activeTab)]="activeTab"
+  >
+    <!-- 1. Concept Tab -->
+    <div slot="concept" class="tab-container">
+      <app-operator-card [operator]="data.metadata" [showPlaygroundLink]="false" />
+    </div>
+
+    <!-- 2. Code Tab -->
+    <div slot="code" class="tab-container">
+      <app-code-block
+        [title]="data.metadata.name + ' Operator Example'"
+        [code]="data.codeSnippet"
+        language="typescript"
+      />
+    </div>
+
+    <!-- 3. Visual Demo Tab -->
+    <div slot="visual" class="tab-container visual-playground-layout">
+      <!-- Parameter Controls Card -->
+      <div class="controls-card">
+        <div class="controls-header">
+          <h3>⚙️ Operator Parameters & Runner</h3>
+          <span class="stream-status-badge" [class.running]="isRunning()" [class.completed]="isCompleted()" [class.idle]="!isRunning() && !isCompleted()">
+            @if (isRunning()) {
+              <span class="pulse-dot"></span> Streaming Active
+            } @else if (isCompleted()) {
+              ✓ Completed
+            } @else {
+              ○ Idle
+            }
+          </span>
+        </div>
+
+        <div class="params-grid">
+          <!-- of() parameters -->
+          @if (data.id === 'of') {
+            <div class="param-group">
+              <label>Comma-Separated Values</label>
+              <input type="text" [value]="ofValuesInput()" (input)="updateOfValues($any($event.target).value)" />
+            </div>
+          }
+
+          <!-- from() parameters -->
+          @if (data.id === 'from') {
+            <div class="param-group">
+              <label>Input Type</label>
+              <select [value]="fromInputType()" (change)="updateFromInputType($any($event.target).value)">
+                <option value="array">Array: ['Alpha', 'Beta', 'Gamma']</option>
+                <option value="promise_resolve">Promise: Resolves in 1s</option>
+                <option value="promise_reject">Promise: Rejects with Error</option>
+                <option value="string_iterable">String Iterable: "RxJS"</option>
+              </select>
+            </div>
+          }
+
+          <!-- fromEvent() parameters -->
+          @if (data.id === 'fromEvent') {
+            <div class="param-group" style="grid-column: 1 / -1;">
+              <label>Interactive Event Target</label>
+              <div #eventTarget class="interactive-target-box">
+                <div class="target-title">🎯 Click or Tap Inside This Target Box</div>
+                <div class="target-sub">Each click generates a real DOM event captured by fromEvent()</div>
+              </div>
+            </div>
+          }
+
+          <!-- interval() parameters -->
+          @if (data.id === 'interval') {
+            <div class="param-group">
+              <label>Period (ms)</label>
+              <div class="slider-container">
+                <input type="range" min="200" max="2000" step="100" [value]="intervalPeriod()" (input)="updateIntervalPeriod(+$any($event.target).value)" />
+                <span class="slider-value">{{ intervalPeriod() }}ms</span>
+              </div>
+            </div>
+            <div class="param-group">
+              <label>Take Count (Safety Cap)</label>
+              <input type="number" min="1" max="10" [value]="intervalTakeCount()" (input)="updateIntervalTakeCount(+$any($event.target).value)" />
+            </div>
+          }
+
+          <!-- timer() parameters -->
+          @if (data.id === 'timer') {
+            <div class="param-group">
+              <label>Timer Mode</label>
+              <select [value]="timerMode()" (change)="updateTimerMode($any($event.target).value)">
+                <option value="single_shot">Single-Shot (Delays, emits 0, completes)</option>
+                <option value="recurring">Recurring (Initial delay + recurring interval)</option>
+              </select>
+            </div>
+            <div class="param-group">
+              <label>Initial Due Time (ms)</label>
+              <div class="slider-container">
+                <input type="range" min="0" max="3000" step="100" [value]="timerDueMs()" (input)="updateTimerDue(+$any($event.target).value)" />
+                <span class="slider-value">{{ timerDueMs() }}ms</span>
+              </div>
+            </div>
+            @if (timerMode() === 'recurring') {
+              <div class="param-group">
+                <label>Recurring Period (ms)</label>
+                <div class="slider-container">
+                  <input type="range" min="200" max="2000" step="100" [value]="timerPeriodMs()" (input)="updateTimerPeriod(+$any($event.target).value)" />
+                  <span class="slider-value">{{ timerPeriodMs() }}ms</span>
+                </div>
+              </div>
+            }
+          }
+
+          <!-- range() parameters -->
+          @if (data.id === 'range') {
+            <div class="param-group">
+              <label>Start Number</label>
+              <input type="number" [value]="rangeStart()" (input)="updateRangeStart(+$any($event.target).value)" />
+            </div>
+            <div class="param-group">
+              <label>Count (Number of items)</label>
+              <input type="number" [value]="rangeCount()" (input)="updateRangeCount(+$any($event.target).value)" />
+            </div>
+          }
+
+          <!-- throwError() parameters -->
+          @if (data.id === 'throwError') {
+            <div class="param-group">
+              <label>Error Message</label>
+              <input type="text" [value]="throwErrorMessage()" (input)="updateThrowErrorMessage($any($event.target).value)" />
+            </div>
+            <div class="param-group" style="justify-content: center;">
+              <label class="checkbox-label">
+                <input type="checkbox" [checked]="throwCatchError()" (change)="toggleThrowCatchError()" />
+                Pipe into catchError() to recover with fallback value
+              </label>
+            </div>
+          }
+
+          <!-- defer() parameters -->
+          @if (data.id === 'defer') {
+            <div class="param-group">
+              <label>Factory Behavior</label>
+              <select [value]="deferMode()" (change)="updateDeferMode($any($event.target).value)">
+                <option value="timestamp">Dynamic Timestamp (Per subscriber)</option>
+                <option value="random">Random Token (Per subscriber)</option>
+              </select>
+            </div>
+          }
+
+          <!-- empty() parameters -->
+          @if (data.id === 'empty') {
+            <div class="param-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [checked]="emptyDefaultIfEmpty()" (change)="toggleEmptyDefault()" />
+                Pipe through defaultIfEmpty('Fallback Value')
+              </label>
+            </div>
+          }
+
+          <!-- never() parameters -->
+          @if (data.id === 'never') {
+            <div class="param-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [checked]="neverWithTimeout()" (change)="toggleNeverTimeout()" />
+                Pipe through timeout(2000ms) to trigger error after silence
+              </label>
+            </div>
+          }
+
+          <!-- generate() parameters -->
+          @if (data.id === 'generate') {
+            <div class="param-group">
+              <label>Preset Progression</label>
+              <select [value]="generatePreset()" (change)="updateGeneratePreset($any($event.target).value)">
+                <option value="powers_of_2">Powers of 2 (1, 2, 4, 8, 16, 32, 64)</option>
+                <option value="even_numbers">Even Numbers (0, 2, 4, 6, 8, 10)</option>
+                <option value="countdown">Countdown (10 down to 1)</option>
+              </select>
+            </div>
+          }
+
+          <!-- iif() parameters -->
+          @if (data.id === 'iif') {
+            <div class="param-group">
+              <label>Condition Result</label>
+              <select [value]="iifCondition() ? 'true' : 'false'" (change)="updateIifCondition($any($event.target).value === 'true')">
+                <option value="true">Condition = TRUE (Streams VIP Stream)</option>
+                <option value="false">Condition = FALSE (Streams Fallback)</option>
+              </select>
+            </div>
+          }
+        </div>
+
+        <div class="runner-actions">
+          @if (!isRunning()) {
+            <button class="btn-run" (click)="runOperatorStream()" type="button">
+              ▶ Run Stream
+            </button>
+          } @else {
+            <button class="btn-stop" (click)="stopOperatorStream()" type="button">
+              ⏹ Stop Stream (Unsubscribe)
+            </button>
+          }
+
+          <button class="btn btn-outline" (click)="clearConsole()" type="button">
+            🗑 Clear Output
+          </button>
+        </div>
+      </div>
+
+      <!-- Marble Diagram Animation -->
+      <app-marble-diagram
+        [inputStreams]="[]"
+        [operatorName]="data.metadata.name"
+        [outputStream]="outputMarbleStream()"
+        [durationMs]="durationMs()"
+        [isPlaying]="isRunning()"
+      />
+
+      <!-- Console Output -->
+      <app-output-console
+        [entries]="consoleEntries()"
+        (clear)="clearConsole()"
+      />
+    </div>
+
+    <!-- 4. Comparison Tab -->
+    <div slot="comparison" class="tab-container">
+      <app-comparison-table [data]="data.comparison" />
+    </div>
+
+    <!-- 5. Quiz Tab -->
+    <div slot="quiz" class="tab-container">
+      <app-quiz-block [questions]="data.quiz" [topicId]="data.id" />
+    </div>
+  </app-playground-wrapper>
+}

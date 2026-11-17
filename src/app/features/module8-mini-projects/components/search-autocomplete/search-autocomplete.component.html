@@ -1,0 +1,184 @@
+<app-playground-wrapper
+  [title]="config.title"
+  [subtitle]="config.subtitle"
+  [category]="config.category"
+  [difficulty]="config.difficulty"
+  [topicId]="config.id"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+  [(activeTab)]="activeTab"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-container concept-panel">
+    <div class="concept-summary-card">
+      <p class="summary-text">{{ config.conceptSummary }}</p>
+    </div>
+
+    @if (config.conceptPillars && config.conceptPillars.length > 0) {
+      <div class="pillars-section">
+        <h3 class="section-heading">Core Architectural Principles</h3>
+        <div class="pillars-grid">
+          @for (pillar of config.conceptPillars; track pillar.title) {
+            <div class="pillar-card">
+              <h4 class="pillar-title">{{ pillar.title }}</h4>
+              <p class="pillar-desc">{{ pillar.description }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (config.conceptSections && config.conceptSections.length > 0) {
+      <div class="deep-dive-section">
+        @for (sec of config.conceptSections; track sec.title) {
+          <div class="deep-dive-card">
+            <h4>{{ sec.title }}</h4>
+            <p>{{ sec.content }}</p>
+          </div>
+        }
+      </div>
+    }
+
+    @if (config.takeaways && config.takeaways.length > 0) {
+      <div class="takeaways-card">
+        <h4>💡 Key Takeaways</h4>
+        <ul>
+          @for (item of config.takeaways; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-container">
+    <app-code-block
+      [title]="config.codeTitle"
+      [code]="config.codeSnippet"
+      language="typescript"
+      [highlightLines]="[3, 4, 7, 12, 13]"
+    />
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-container visual-demo-container">
+    <div class="demo-card search-card">
+      <div class="search-header">
+        <div class="search-box-wrapper">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            data-testid="search-input"
+            class="search-input"
+            placeholder="Search lessons (e.g., 'rxjs', 'switchMap', 'observable')..."
+            [formControl]="searchControl"
+          />
+          @if (searchControl.value) {
+            <button class="clear-btn" (click)="clearSearch()" type="button" title="Clear search">✕</button>
+          }
+          @if (isLoading()) {
+            <div data-testid="search-loading" class="spinner-inline" title="Searching..."></div>
+          }
+        </div>
+
+        <div class="search-controls-bar">
+          <div class="control-item">
+            <label for="debounce-slider">Debounce: <strong>{{ debounceSlider.value }}ms</strong></label>
+            <input
+              id="debounce-slider"
+              type="range"
+              min="50"
+              max="800"
+              step="50"
+              [formControl]="debounceSlider"
+            />
+          </div>
+
+          <div class="control-item toggle-item">
+            <label class="checkbox-label">
+              <input type="checkbox" [formControl]="simulateErrorControl" />
+              <span>Simulate 500 Error</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Telemetry counters bar -->
+      <div class="metrics-row">
+        <div class="metric-pill">
+          <span class="pill-label">Keystrokes:</span>
+          <span class="pill-value">{{ keystrokeCount() }}</span>
+        </div>
+        <div class="metric-pill">
+          <span class="pill-label">HTTP Requests:</span>
+          <span class="pill-value">{{ requestCount() }}</span>
+        </div>
+        <div class="metric-pill highlight">
+          <span class="pill-label">Cancelled by switchMap:</span>
+          <span class="pill-value">{{ cancelledCount() }}</span>
+        </div>
+        <div class="metric-pill">
+          <span class="pill-label">Active Results:</span>
+          <span class="pill-value">{{ results().length }} (Capped at 10)</span>
+        </div>
+      </div>
+
+      <!-- Error banner -->
+      @if (errorMessage()) {
+        <div class="alert-banner warning" data-testid="search-error">
+          <span>⚠️ {{ errorMessage() }}</span>
+        </div>
+      }
+
+      <!-- Results list -->
+      <div class="results-container">
+        @if (results().length > 0) {
+          <div class="results-header">
+            <h4>Matched Lessons ({{ totalResults() }} total)</h4>
+          </div>
+          <div class="results-grid">
+            @for (lesson of results(); track lesson.id) {
+              <div class="lesson-card">
+                <div class="lesson-seq">#{{ lesson.seqNo }}</div>
+                <div class="lesson-content">
+                  <div class="lesson-desc">{{ lesson.description }}</div>
+                  <div class="lesson-meta">
+                    <span class="meta-tag">Duration: {{ lesson.duration }}</span>
+                    <span class="meta-tag">Course ID: {{ lesson.courseId }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (!isLoading() && searchControl.value && searchControl.value.trim().length > 0) {
+          <div class="empty-state">
+            <span class="empty-icon">📂</span>
+            <p>No matching lessons found for "{{ searchControl.value }}".</p>
+          </div>
+        } @else if (!searchControl.value) {
+          <div class="empty-state initial">
+            <span class="empty-icon">⌨️</span>
+            <p>Type a query above to test debounced autocomplete and in-flight cancellation.</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Output console -->
+    <app-output-console
+      title="Search Pipeline Events"
+      [entries]="consoleEntries()"
+      (clear)="clearConsole()"
+    />
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-container">
+    <app-comparison-table [data]="config.comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-container">
+    <app-quiz-block [questions]="config.quizQuestions" [topicId]="config.id" />
+  </div>
+</app-playground-wrapper>

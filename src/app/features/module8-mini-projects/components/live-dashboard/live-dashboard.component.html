@@ -1,0 +1,248 @@
+<app-playground-wrapper
+  [title]="config.title"
+  [subtitle]="config.subtitle"
+  [category]="config.category"
+  [difficulty]="config.difficulty"
+  [topicId]="config.id"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+  [(activeTab)]="activeTab"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-container concept-panel">
+    <div class="concept-summary-card">
+      <p class="summary-text">{{ config.conceptSummary }}</p>
+    </div>
+
+    @if (config.conceptPillars && config.conceptPillars.length > 0) {
+      <div class="pillars-section">
+        <h3 class="section-heading">Architectural Foundation</h3>
+        <div class="pillars-grid">
+          @for (pillar of config.conceptPillars; track pillar.title) {
+            <div class="pillar-card">
+              <h4 class="pillar-title">{{ pillar.title }}</h4>
+              <p class="pillar-desc">{{ pillar.description }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (config.conceptSections && config.conceptSections.length > 0) {
+      <div class="deep-dive-section">
+        @for (sec of config.conceptSections; track sec.title) {
+          <div class="deep-dive-card">
+            <h4>{{ sec.title }}</h4>
+            <p>{{ sec.content }}</p>
+          </div>
+        }
+      </div>
+    }
+
+    @if (config.takeaways && config.takeaways.length > 0) {
+      <div class="takeaways-card">
+        <h4>💡 Key Takeaways</h4>
+        <ul>
+          @for (item of config.takeaways; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-container">
+    <app-code-block
+      [title]="config.codeTitle"
+      [code]="config.codeSnippet"
+      language="typescript"
+      [highlightLines]="[2, 3, 7, 10, 18]"
+    />
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-container visual-demo-container">
+    <!-- Dashboard controls header -->
+    <div class="dashboard-toolbar">
+      <div class="stream-status">
+        <span class="status-indicator" [class.active]="isPlaying()" [class.paused]="!isPlaying()"></span>
+        <span class="status-text">{{ isPlaying() ? 'LIVE STREAM ACTIVE' : 'STREAM PAUSED' }}</span>
+      </div>
+
+      <div class="actions-group">
+        <button
+          type="button"
+          data-testid="toggle-play-btn"
+          class="btn btn-primary"
+          (click)="togglePlay()"
+        >
+          {{ isPlaying() ? '❚❚ Pause Telemetry' : '▶ Resume Telemetry' }}
+        </button>
+
+        <div class="spike-buttons">
+          <span class="btn-label">Inject Spike:</span>
+          <button type="button" class="btn btn-outline" (click)="injectSpike('cpu')">CPU (88%)</button>
+          <button type="button" class="btn btn-outline" (click)="injectSpike('mem')">Mem (92%)</button>
+          <button type="button" class="btn btn-outline" (click)="injectSpike('net')">Net (900MB/s)</button>
+        </div>
+
+        <div class="speed-control">
+          <label for="speed-slider">Tick: <strong>{{ speedControl.value }}ms</strong></label>
+          <input
+            id="speed-slider"
+            type="range"
+            min="200"
+            max="2000"
+            step="100"
+            [formControl]="speedControl"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Alert banner when threshold exceeded -->
+    @if (latestPoint().alertStatus !== 'NORMAL') {
+      <div class="alert-banner critical" data-testid="alert-banner">
+        <span class="alert-icon">🚨</span>
+        <div class="alert-content">
+          <strong>CRITICAL THRESHOLD ALERT:</strong>
+          <span>
+            @if (latestPoint().alertStatus === 'CRITICAL_CPU') {
+              High CPU load detected ({{ latestPoint().cpu }}% > 75%). Auto-scaling recommended!
+            } @else {
+              High Memory utilization detected ({{ latestPoint().mem }}% > 85%). GC pressure imminent!
+            }
+          </span>
+        </div>
+      </div>
+    }
+
+    <!-- 3 Real-time Metric Cards -->
+    <div class="telemetry-grid">
+      <!-- CPU Card -->
+      <div class="metric-card" [class.critical]="latestPoint().cpu > 75" [class.warning]="latestPoint().cpu > 60 && latestPoint().cpu <= 75">
+        <div class="card-top">
+          <div class="metric-info">
+            <span class="metric-icon">⚙️</span>
+            <span class="metric-name">Processor Load</span>
+          </div>
+          <span class="metric-badge" [class.badge-crit]="latestPoint().cpu > 75">
+            {{ latestPoint().cpu > 75 ? 'CRITICAL' : latestPoint().cpu > 60 ? 'HIGH' : 'NORMAL' }}
+          </span>
+        </div>
+
+        <div class="metric-value-row">
+          <span class="metric-large-num">{{ latestPoint().cpu }}</span>
+          <span class="metric-unit">%</span>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" [style.width.%]="latestPoint().cpu"></div>
+        </div>
+
+        <!-- SVG Sparkline -->
+        <div class="sparkline-wrapper">
+          <svg class="sparkline-svg" viewBox="0 0 240 50">
+            <path
+              [attr.d]="getSparklineSvgPath('cpu')"
+              class="sparkline-line cpu-line"
+              fill="none"
+              stroke-width="2"
+            />
+          </svg>
+          <span class="sparkline-caption">15-point sliding scan window</span>
+        </div>
+      </div>
+
+      <!-- Memory Card -->
+      <div class="metric-card" [class.critical]="latestPoint().mem > 85" [class.warning]="latestPoint().mem > 70 && latestPoint().mem <= 85">
+        <div class="card-top">
+          <div class="metric-info">
+            <span class="metric-icon">🧠</span>
+            <span class="metric-name">Memory Utilization</span>
+          </div>
+          <span class="metric-badge" [class.badge-crit]="latestPoint().mem > 85">
+            {{ latestPoint().mem > 85 ? 'CRITICAL' : latestPoint().mem > 70 ? 'HIGH' : 'NORMAL' }}
+          </span>
+        </div>
+
+        <div class="metric-value-row">
+          <span class="metric-large-num">{{ latestPoint().mem }}</span>
+          <span class="metric-unit">%</span>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill memory-fill" [style.width.%]="latestPoint().mem"></div>
+        </div>
+
+        <!-- SVG Sparkline -->
+        <div class="sparkline-wrapper">
+          <svg class="sparkline-svg" viewBox="0 0 240 50">
+            <path
+              [attr.d]="getSparklineSvgPath('mem')"
+              class="sparkline-line mem-line"
+              fill="none"
+              stroke-width="2"
+            />
+          </svg>
+          <span class="sparkline-caption">15-point sliding scan window</span>
+        </div>
+      </div>
+
+      <!-- Network Card -->
+      <div class="metric-card" [class.critical]="latestPoint().net > 800" [class.warning]="latestPoint().net > 400 && latestPoint().net <= 800">
+        <div class="card-top">
+          <div class="metric-info">
+            <span class="metric-icon">🌐</span>
+            <span class="metric-name">Network Bandwidth</span>
+          </div>
+          <span class="metric-badge">
+            {{ latestPoint().net > 800 ? 'HEAVY' : 'STABLE' }}
+          </span>
+        </div>
+
+        <div class="metric-value-row">
+          <span class="metric-large-num">{{ latestPoint().net }}</span>
+          <span class="metric-unit">MB/s</span>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill net-fill" [style.width.%]="(latestPoint().net / 1000) * 100"></div>
+        </div>
+
+        <!-- SVG Sparkline -->
+        <div class="sparkline-wrapper">
+          <svg class="sparkline-svg" viewBox="0 0 240 50">
+            <path
+              [attr.d]="getSparklineSvgPath('net')"
+              class="sparkline-line net-line"
+              fill="none"
+              stroke-width="2"
+            />
+          </svg>
+          <span class="sparkline-caption">15-point sliding scan window</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output console -->
+    <app-output-console
+      title="Live Stream Telemetry Log"
+      [entries]="consoleEntries()"
+      (clear)="clearConsole()"
+    />
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-container">
+    <app-comparison-table [data]="config.comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-container">
+    <app-quiz-block [questions]="config.quizQuestions" [topicId]="config.id" />
+  </div>
+</app-playground-wrapper>

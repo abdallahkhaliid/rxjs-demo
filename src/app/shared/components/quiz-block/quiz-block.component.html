@@ -1,0 +1,147 @@
+<div class="quiz-container">
+  @if (!showResults()) {
+    @if (currentQuestion(); as q) {
+      <div class="quiz-question-card">
+        <!-- Stepper Header -->
+        <div class="quiz-stepper">
+          <div class="stepper-meta">
+            <span class="stepper-title">Knowledge Check</span>
+            <span class="stepper-count">Question {{ currentIndex() + 1 }} of {{ questions().length }}</span>
+          </div>
+
+          <!-- Progress Dots -->
+          <div class="stepper-dots">
+            @for (item of questions(); track item.id; let idx = $index) {
+              @let ans = answeredQuestions()[idx];
+              <span
+                class="stepper-dot"
+                [class.current]="idx === currentIndex()"
+                [class.correct]="ans && ans.isCorrect"
+                [class.wrong]="ans && !ans.isCorrect"
+              ></span>
+            }
+          </div>
+        </div>
+
+        <!-- Question Prompt -->
+        <h3 class="question-text">{{ q.question }}</h3>
+
+        @if (q.codeSnippet) {
+          <div class="question-snippet">
+            <pre><code>{{ q.codeSnippet }}</code></pre>
+          </div>
+        }
+
+        <!-- Options -->
+        <div class="options-group">
+          @for (option of q.options; track option.id) {
+            @let state = currentAnswerState();
+            @let isSelected = selectedOptionId() === option.id;
+            @let isCorrectOption = option.id === q.correctOptionId;
+
+            <button
+              class="option-item"
+              [class.selected]="isSelected && !state"
+              [class.correct]="state && isCorrectOption"
+              [class.wrong]="state && isSelected && !isCorrectOption"
+              [disabled]="isCurrentAnswered()"
+              (click)="selectOption(option.id)"
+              type="button"
+            >
+              <span class="option-radio-mark">
+                @if (state && isCorrectOption) { ✓ }
+                @else if (state && isSelected && !isCorrectOption) { ✕ }
+                @else if (isSelected) { ● }
+                @else { ○ }
+              </span>
+              <div class="option-text-wrap">
+                <span class="option-text">{{ option.text }}</span>
+                @if (option.codeSnippet) {
+                  <code class="option-code">{{ option.codeSnippet }}</code>
+                }
+              </div>
+            </button>
+          }
+        </div>
+
+        <!-- Explanation card (shown after answering) -->
+        @if (isCurrentAnswered()) {
+          <div
+            class="explanation-card"
+            [class.correct]="currentAnswerState()?.isCorrect"
+            [class.wrong]="!currentAnswerState()?.isCorrect"
+          >
+            <div class="explanation-header">
+              <span class="explanation-icon">
+                {{ currentAnswerState()?.isCorrect ? '✓ Correct!' : '✕ Incorrect' }}
+              </span>
+            </div>
+            <p class="explanation-text">{{ q.explanation }}</p>
+          </div>
+        }
+
+        <!-- Actions -->
+        <div class="quiz-actions">
+          <div class="actions-left">
+            @if (currentIndex() > 0) {
+              <button class="btn btn-secondary btn-sm" (click)="prevQuestion()" type="button">
+                ← Previous
+              </button>
+            }
+          </div>
+
+          <div class="actions-right">
+            @if (!isCurrentAnswered()) {
+              <button
+                class="btn btn-primary"
+                [disabled]="!selectedOptionId()"
+                (click)="submitAnswer()"
+                type="button"
+              >
+                Submit Answer
+              </button>
+            } @else {
+              @if (currentIndex() < questions().length - 1) {
+                <button class="btn btn-primary" (click)="nextQuestion()" type="button">
+                  Next Question →
+                </button>
+              } @else {
+                <button class="btn btn-primary" (click)="finishQuiz()" type="button">
+                  View Results →
+                </button>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    }
+  } @else {
+    <!-- Final Results Summary Card -->
+    <div class="quiz-results-card" [class.passed]="score().passed">
+      <div class="results-badge">
+        <span class="results-icon">{{ score().passed ? '🎉' : '📚' }}</span>
+        <h2 class="results-title">
+          {{ score().passed ? 'Topic Mastered!' : 'Keep Learning' }}
+        </h2>
+        <p class="results-sub">
+          {{ score().passed
+            ? 'Great job! You achieved the mastery threshold for this topic.'
+            : 'You scored below the passing threshold. Review the material and try again.' }}
+        </p>
+      </div>
+
+      <div class="score-display">
+        <div class="score-circle">
+          <span class="score-percentage">{{ score().percentage }}%</span>
+          <span class="score-ratio">{{ score().correct }} of {{ score().total }} correct</span>
+        </div>
+      </div>
+
+      <div class="results-actions">
+        <button class="btn btn-secondary" (click)="retryQuiz()" type="button">
+          ↺ Retry Quiz
+        </button>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,56 @@
+<div class="code-block-container" [class.collapsed]="isCollapsed()">
+  <div class="code-block-header">
+    <div class="header-left">
+      <span class="file-icon">📄</span>
+      <span class="header-title">{{ title() || (language() | uppercase) }}</span>
+      <span class="lang-badge">{{ language() }}</span>
+    </div>
+
+    <div class="header-actions">
+      @if (collapsible()) {
+        <button
+          class="action-btn"
+          (click)="toggleCollapse()"
+          type="button"
+          [attr.aria-label]="isCollapsed() ? 'Expand code' : 'Collapse code'"
+        >
+          {{ isCollapsed() ? 'Expand' : 'Collapse' }}
+        </button>
+      }
+
+      <button
+        class="action-btn copy-btn"
+        [class.success]="copied()"
+        (click)="copyCode()"
+        type="button"
+        title="Copy to clipboard"
+      >
+        @if (copied()) {
+          <span class="copy-success-icon">✓ Copied!</span>
+        } @else {
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span>Copy</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  @if (!isCollapsed()) {
+    <div class="code-block-body" [style.max-height]="maxHeight()">
+      @if (showLineNumbers()) {
+        <div class="line-numbers-col" aria-hidden="true">
+          @for (line of codeLines(); track line.lineNum) {
+            <span class="line-num" [class.highlighted]="line.isHighlighted">{{ line.lineNum }}</span>
+          }
+        </div>
+      }
+
+      <div class="code-content-col">
+        <pre><code class="hljs" [innerHTML]="highlightedCode()"></code></pre>
+      </div>
+    </div>
+  }
+</div>

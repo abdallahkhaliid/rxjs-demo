@@ -1,0 +1,369 @@
+@if (topic(); as data) {
+  <app-playground-wrapper
+    [title]="data.title"
+    [subtitle]="data.subtitle"
+    [category]="data.category"
+    [difficulty]="data.difficulty"
+    [topicId]="data.id"
+    [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+    [(activeTab)]="activeTab"
+  >
+    <!-- 1. Concept Tab -->
+    <div slot="concept" class="tab-container concept-panel">
+      <div class="concept-summary-card">
+        <p class="summary-text">{{ data.concept.summary }}</p>
+      </div>
+
+      @if (data.concept.pillars && data.concept.pillars.length > 0) {
+        <div class="pillars-section">
+          <h2 class="section-heading">{{ data.concept.pillarsTitle || 'Key Architectural Principles' }}</h2>
+          <div class="pillars-grid">
+            @for (pillar of data.concept.pillars; track pillar.title) {
+              <div class="pillar-card">
+                <h3 class="pillar-title">{{ pillar.title }}</h3>
+                <p class="pillar-desc">{{ pillar.description }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="deep-dive-section">
+        @for (section of data.concept.sections; track section.title) {
+          <div class="deep-dive-card">
+            <h3>{{ section.title }}</h3>
+            <p>{{ section.content }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="takeaways-card">
+        <h3>💡 Key Takeaways</h3>
+        <ul>
+          @for (takeaway of data.concept.takeaways; track takeaway) {
+            <li>{{ takeaway }}</li>
+          }
+        </ul>
+      </div>
+    </div>
+
+    <!-- 2. Code Tab -->
+    <div slot="code" class="tab-container">
+      <app-code-block
+        [title]="data.code.title"
+        [code]="data.code.code"
+        [language]="data.code.language"
+        [highlightLines]="data.code.highlightLines || []"
+      />
+    </div>
+
+    <!-- 3. Visual Demo Tab -->
+    <div slot="visual" class="tab-container visual-demo-container">
+      <!-- Cross Navigation Banner -->
+      <aside class="sandbox-banner">
+        <div class="banner-text">
+          <span class="banner-icon">📡</span>
+          <span>Explore all 4 variants side-by-side with a 3-observer fleet in the</span>
+          <a routerLink="/module5/sandbox" class="banner-link">Interactive Subject Sandbox &rarr;</a>
+        </div>
+      </aside>
+
+      <!-- Variant-Specific Control Panel -->
+      @if (subjectType() === 'BehaviorSubject') {
+        <section class="section-card variant-controls">
+          <div class="controls-header">
+            <h3>📦 BehaviorSubject State Machine</h3>
+            <span class="badge badge-primary">Buffer: 1 + Mandatory Seed</span>
+          </div>
+
+          <div class="controls-body">
+            <div class="config-line">
+              <div class="form-group">
+                <label for="detail-seed" class="form-label">Seed Initial Value:</label>
+                <input
+                  id="detail-seed"
+                  type="text"
+                  class="form-control"
+                  [ngModel]="behaviorInitialValue()"
+                  (ngModelChange)="behaviorInitialValue.set($event); initSubjectInstance()"
+                  [disabled]="behaviorInitialIsNull()"
+                />
+              </div>
+              <div class="form-check">
+                <input
+                  id="detail-null-check"
+                  type="checkbox"
+                  class="form-checkbox"
+                  [checked]="behaviorInitialIsNull()"
+                  (change)="setNullInitial(!behaviorInitialIsNull())"
+                />
+                <label for="detail-null-check" class="form-check-label">Use <code>null</code> Initial Value (F37.B1)</label>
+              </div>
+            </div>
+
+            <div class="snapshot-card">
+              <span class="snapshot-label">Synchronous Read (.getValue()):</span>
+              <code class="snapshot-value">{{ formatValue(subjectStatus().currentValue) }}</code>
+            </div>
+
+            <div class="emit-line">
+              <input
+                type="text"
+                class="form-control"
+                [ngModel]="nextValueInput()"
+                (ngModelChange)="nextValueInput.set($event)"
+                placeholder="New State Payload"
+                (keydown.enter)="emitNext()"
+              />
+              <button type="button" class="btn btn-primary" (click)="emitNext()" [disabled]="subjectStatus().isStopped">
+                Update State (.next())
+              </button>
+            </div>
+
+            <div class="preset-row">
+              <span class="presets-caption">State Presets:</span>
+              <button type="button" class="preset-btn" (click)="setPreset('User: Alice (Admin)')">Alice (Admin)</button>
+              <button type="button" class="preset-btn" (click)="setPreset('User: Bob (Editor)')">Bob (Editor)</button>
+              <button type="button" class="preset-btn" (click)="setPreset('Session Expired')">Session Expired</button>
+            </div>
+          </div>
+        </section>
+      }
+
+      @if (subjectType() === 'ReplaySubject') {
+        <section class="section-card variant-controls">
+          <div class="controls-header">
+            <h3>📼 ReplaySubject History Buffer</h3>
+            <span class="badge badge-primary">Buffer Size: {{ replayBufferSize() }} | Window: {{ replayWindowTimeMs() === 0 ? 'Infinity' : replayWindowTimeMs() + 'ms' }}</span>
+          </div>
+
+          <div class="controls-body">
+            <div class="config-line">
+              <div class="form-group">
+                <span class="form-label">Buffer Capacity:</span>
+                <div class="button-toggle-group">
+                  @for (size of bufferSizes; track size) {
+                    <button
+                      type="button"
+                      class="toggle-btn"
+                      [class.active]="replayBufferSize() === size"
+                      (click)="setBufferSize(size)"
+                    >
+                      {{ size }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="form-group">
+                <span class="form-label">Time Window:</span>
+                <div class="button-toggle-group">
+                  <button type="button" class="toggle-btn" [class.active]="replayWindowTimeMs() === 0" (click)="setWindowTime(0)">Unlimited</button>
+                  <button type="button" class="toggle-btn" [class.active]="replayWindowTimeMs() === 1500" (click)="setWindowTime(1500)">1500ms</button>
+                  <button type="button" class="toggle-btn" [class.active]="replayWindowTimeMs() === 3000" (click)="setWindowTime(3000)">3000ms</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="emit-line">
+              <input
+                type="text"
+                class="form-control"
+                [ngModel]="nextValueInput()"
+                (ngModelChange)="nextValueInput.set($event)"
+                placeholder="Log / Event string"
+                (keydown.enter)="emitNext()"
+              />
+              <button type="button" class="btn btn-primary" (click)="emitNext()" [disabled]="subjectStatus().isStopped">
+                Push Item (.next())
+              </button>
+              <button type="button" class="btn btn-warning" (click)="emitComplete()" [disabled]="subjectStatus().isStopped">
+                Complete Stream
+              </button>
+            </div>
+
+            <div class="preset-row">
+              <span class="presets-caption">Event Presets:</span>
+              <button type="button" class="preset-btn" (click)="setPreset('Order Placed #101')">Order Placed</button>
+              <button type="button" class="preset-btn" (click)="setPreset('Payment Processed $49')">Payment</button>
+              <button type="button" class="preset-btn" (click)="setPreset('Invoice Generated')">Invoice</button>
+            </div>
+          </div>
+        </section>
+      }
+
+      @if (subjectType() === 'AsyncSubject') {
+        <section class="section-card variant-controls">
+          <div class="controls-header">
+            <h3>⏳ AsyncSubject Completion Gate (Promise Analogy)</h3>
+            <span class="badge badge-warning">Emits Only Final Value on Completion</span>
+          </div>
+
+          <div class="controls-body">
+            <div class="info-alert">
+              <span>Notice: Observers receive <strong>zero emissions</strong> while intermediate progress values are emitted. Only upon calling <code>.complete()</code> is the final value pushed!</span>
+            </div>
+
+            <div class="emit-line">
+              <input
+                type="text"
+                class="form-control"
+                [ngModel]="nextValueInput()"
+                (ngModelChange)="nextValueInput.set($event)"
+                placeholder="Progress update or payload"
+                (keydown.enter)="emitNext()"
+              />
+              <button type="button" class="btn btn-primary" (click)="emitNext()" [disabled]="subjectStatus().isStopped">
+                Push Next Value
+              </button>
+              <button type="button" class="btn btn-warning" (click)="emitComplete()" [disabled]="subjectStatus().isStopped">
+                🏁 Complete Stream (.complete())
+              </button>
+            </div>
+
+            <div class="preset-row">
+              <span class="presets-caption">Progress Presets:</span>
+              <button type="button" class="preset-btn" (click)="setPreset('HTTP Step 1: Connecting (20%)')">20%</button>
+              <button type="button" class="preset-btn" (click)="setPreset('HTTP Step 2: Downloading (75%)')">75%</button>
+              <button type="button" class="preset-btn" (click)="setPreset('HTTP 200 OK: Final Payload Cached')">200 OK (Final)</button>
+            </div>
+          </div>
+        </section>
+      }
+
+      <!-- 2-Observer Fleet (Early vs Late Subscriber) -->
+      <section class="deep-dive-fleet">
+        <div class="fleet-header">
+          <h3>Early Subscriber vs. Late Subscriber Dynamic</h3>
+          <span class="fleet-hint">Connect Observer B after emissions to see immediate replay delivery</span>
+        </div>
+
+        <div class="observers-row">
+          <!-- Observer A (Early) -->
+          @let obsA = observers()['A'];
+          <div class="observer-card observer-a">
+            <div class="card-top">
+              <div class="identity">
+                <span class="dot a-dot"></span>
+                <strong>Observer A</strong>
+                <span class="sub-label">(Connected Early)</span>
+              </div>
+              <span class="status-badge" [class]="obsA.status">{{ obsA.status }}</span>
+            </div>
+
+            <div class="obs-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-connect"
+                [disabled]="obsA.status === 'connected'"
+                (click)="subscribeObserver('A')"
+              >
+                Connect
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-disconnect"
+                [disabled]="obsA.status !== 'connected'"
+                (click)="unsubscribeObserver('A')"
+              >
+                Disconnect
+              </button>
+            </div>
+
+            <div class="stream-viewport">
+              @if (obsA.emissions.length === 0) {
+                <span class="empty-msg">No emissions received.</span>
+              } @else {
+                @for (item of obsA.emissions; track item.id) {
+                  <div class="stream-row" [class]="'type-' + item.type">
+                    <span class="time">+{{ item.relativeMs }}ms</span>
+                    @if (item.source === 'replay') {
+                      <span class="badge-source replay">[REPLAY]</span>
+                    } @else if (item.source === 'live') {
+                      <span class="badge-source live">[LIVE]</span>
+                    }
+                    <span class="val">{{ item.displayValue }}</span>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+
+          <!-- Observer B (Late) -->
+          @let obsB = observers()['B'];
+          <div class="observer-card observer-b">
+            <div class="card-top">
+              <div class="identity">
+                <span class="dot b-dot"></span>
+                <strong>Observer B</strong>
+                <span class="sub-label">(Connect Late!)</span>
+              </div>
+              <span class="status-badge" [class]="obsB.status">{{ obsB.status }}</span>
+            </div>
+
+            <div class="obs-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-connect btn-highlight"
+                [disabled]="obsB.status === 'connected'"
+                (click)="subscribeObserver('B')"
+              >
+                ⚡ Connect Late Subscriber
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-disconnect"
+                [disabled]="obsB.status !== 'connected'"
+                (click)="unsubscribeObserver('B')"
+              >
+                Disconnect
+              </button>
+            </div>
+
+            <div class="stream-viewport">
+              @if (obsB.emissions.length === 0) {
+                <span class="empty-msg">Observer B is idle. Click "Connect Late Subscriber" after emitting values to observe replay behavior.</span>
+              } @else {
+                @for (item of obsB.emissions; track item.id) {
+                  <div class="stream-row" [class]="'type-' + item.type">
+                    <span class="time">+{{ item.relativeMs }}ms</span>
+                    @if (item.source === 'replay') {
+                      <span class="badge-source replay">[REPLAY]</span>
+                    } @else if (item.source === 'live') {
+                      <span class="badge-source live">[LIVE]</span>
+                    }
+                    <span class="val">{{ item.displayValue }}</span>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Action reset bar -->
+      <div class="demo-actions-footer">
+        <button type="button" class="btn btn-secondary" (click)="resetDemo()">
+          🔄 Reset Simulation
+        </button>
+      </div>
+
+      <!-- Unified Output Console -->
+      <app-output-console
+        title="Deep Dive Event Stream Console"
+        [entries]="consoleEntries()"
+        (clear)="clearConsole()"
+      />
+    </div>
+
+    <!-- 4. Comparison Tab -->
+    <div slot="comparison" class="tab-container">
+      <app-comparison-table [data]="data.comparison" />
+    </div>
+
+    <!-- 5. Quiz Tab -->
+    <div slot="quiz" class="tab-container">
+      <app-quiz-block [questions]="data.quiz" [topicId]="data.id" />
+    </div>
+  </app-playground-wrapper>
+}

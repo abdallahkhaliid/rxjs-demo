@@ -1,0 +1,110 @@
+<div class="timeline-visualizer-container" [class.compact-mode]="compact()">
+  <!-- Status Header -->
+  <header class="timeline-header">
+    <div class="operator-meta">
+      <span class="operator-title">{{ stateSummary().operator }}</span>
+      @if (stateSummary().operator === 'mergeMap') {
+        <span class="concurrency-pill">Concurrency: {{ stateSummary().limit }}</span>
+      }
+    </div>
+
+    <div class="state-badges">
+      <span class="stat-badge stat-active" [class.has-count]="stateSummary().active > 0">
+        <span class="dot"></span> Active: {{ stateSummary().active }}
+      </span>
+      <span class="stat-badge stat-queued" [class.has-count]="stateSummary().queued > 0">
+        <span class="dot"></span> Queued: {{ stateSummary().queued }}
+      </span>
+      <span class="stat-badge stat-completed" [class.has-count]="stateSummary().completed > 0">
+        <span class="dot"></span> Completed: {{ stateSummary().completed }}
+      </span>
+      <span class="stat-badge stat-cancelled" [class.has-count]="stateSummary().cancelled > 0">
+        <span class="dot"></span> Cancelled: {{ stateSummary().cancelled }}
+      </span>
+      <span class="stat-badge stat-ignored" [class.has-count]="stateSummary().ignored > 0">
+        <span class="dot"></span> Ignored: {{ stateSummary().ignored }}
+      </span>
+    </div>
+  </header>
+
+  <!-- Concurrent Swimlanes -->
+  <main class="swimlane-area">
+    @if (snapshot().requests.length === 0) {
+      <div class="empty-timeline">
+        <span class="empty-icon">⏳</span>
+        <p>No active requests in flight. Click <strong>Single Request</strong> or <strong>Burst Trigger</strong> above to simulate emissions.</p>
+      </div>
+    } @else {
+      <div class="tracks-list">
+        @for (req of snapshot().requests; track req.id) {
+          <div class="track-row" [ngClass]="getTrackClass(req.state)">
+            <!-- Left Info Pill -->
+            <div class="track-info">
+              <span class="req-id-pill" [style.background-color]="req.color">{{ req.id }}</span>
+              <span class="req-label" [title]="req.label">{{ req.label }}</span>
+              <span class="state-pill" [ngClass]="getStateBadgeClass(req.state)">
+                {{ req.state | uppercase }}
+              </span>
+            </div>
+
+            <!-- Visual Timeline Bar -->
+            <div class="track-bar-container">
+              @switch (req.state) {
+                @case ('active') {
+                  <div
+                    class="bar-fill bar-active"
+                    [style.width.%]="req.progress"
+                    [style.background]="req.color">
+                    <span class="bar-label">{{ req.elapsedMs }}ms / {{ req.durationMs }}ms ({{ req.progress }}%)</span>
+                  </div>
+                }
+                @case ('queued') {
+                  <div class="bar-fill bar-queued">
+                    <span class="bar-label">⏳ Queued (waiting for slot)</span>
+                  </div>
+                }
+                @case ('completed') {
+                  <div class="bar-fill bar-completed">
+                    <span class="bar-label">✓ Completed ({{ req.durationMs }}ms) → Emitted: <code>{{ req.emittedValue }}</code></span>
+                  </div>
+                }
+                @case ('cancelled') {
+                  <div class="bar-fill bar-cancelled">
+                    <span class="bar-label">✕ Cancelled ({{ req.cancelReason || 'Aborted' }})</span>
+                  </div>
+                }
+                @case ('ignored') {
+                  <div class="bar-fill bar-ignored">
+                    <span class="bar-label">⊘ Ignored (dropped while inner busy)</span>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </main>
+
+  <!-- Chronological Output Stream -->
+  <footer class="output-stream-footer">
+    <div class="stream-label">
+      <span class="icon">⚡</span>
+      <span>Output Stream (Emitted Values in Chronological Order):</span>
+    </div>
+
+    <div class="emissions-row">
+      @if (snapshot().outputs.length === 0) {
+        <span class="no-emissions">No outputs emitted yet. Completed inner observables will appear here.</span>
+      } @else {
+        @for (out of snapshot().outputs; track out.id) {
+          <div class="emission-marble" [style.border-color]="out.color">
+            <span class="marble-dot" [style.background-color]="out.color"></span>
+            <span class="marble-val">{{ out.displayLabel }}</span>
+            <span class="marble-time">t+{{ out.timeMs }}ms</span>
+          </div>
+        }
+      }
+    </div>
+  </footer>
+</div>

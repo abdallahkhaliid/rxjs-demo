@@ -1,0 +1,31 @@
+diff --git a/src/app/shared/components/output-console/output-console.component.spec.ts b/src/app/shared/components/output-console/output-console.component.spec.ts
+--- a/src/app/shared/components/output-console/output-console.component.spec.ts
++++ b/src/app/shared/components/output-console/output-console.component.spec.ts
+@@ -48,4 +48,27 @@ describe('OutputConsoleComponent', () => {
+     expect(clearEmitted).toBeTrue();
+   });
++
++  it('should format values safely in formatValue', () => {
++    expect(component.formatValue(undefined)).toBe('');
++    expect(component.formatValue(null)).toBe('null');
++    expect(component.formatValue('rx')).toBe('rx');
++    expect(component.formatValue({ x: 1 })).toBe('{"x":1}');
++
++    const circular: any = { tag: 'circle' };
++    circular.self = circular;
++    expect(() => component.formatValue(circular)).not.toThrow();
++    expect(component.formatValue(circular)).toContain('[object Object]');
++  });
++
++  it('should safely execute copyLogs without throwing when entry has circular reference', async () => {
++    const circular: any = { data: 'test' };
++    circular.self = circular;
++
++    fixture.componentRef.setInput('entries', [
++      { id: 'c1', timestamp: 100, relativeMs: 0, type: 'next', value: circular }
++    ]);
++    fixture.detectChanges();
++
++    await expectAsync(component.copyLogs()).toBeResolved();
++  });
+ });

@@ -1,0 +1,223 @@
+<app-playground-wrapper
+  [title]="config().title"
+  [subtitle]="config().subtitle"
+  category="Higher-Order Observables"
+  difficulty="intermediate"
+  [topicId]="config().id"
+  [(activeTab)]="activeTab"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-pane concept-pane">
+    <app-operator-card [operator]="config().metadata" [showPlaygroundLink]="false" />
+
+    <div class="concept-deep-dive">
+      <div class="concept-card">
+        <h4>⚡ Concurrency & Flattening Strategy</h4>
+        <p>{{ config().description }}</p>
+        <ul class="rule-list">
+          @for (rule of config().marbleRules; track rule) {
+            <li>{{ rule }}</li>
+          }
+        </ul>
+      </div>
+
+      <div class="concept-card highlight-card">
+        <h4>🛡️ Resilience & Error Isolation (F36.B1)</h4>
+        <p>
+          In higher-order mapping, an uncaught error in any inner observable will immediately terminate the entire outer stream.
+          To keep the outer pipeline listening for future user actions (e.g. search inputs or button clicks), you <strong>must</strong> catch the error inside the inner pipeline:
+        </p>
+        <div class="snippet-preview">
+          <code>outer$.pipe({{ config().name }}(val => inner$(val).pipe(catchError(...))))</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-pane code-pane">
+    <div class="code-subtabs">
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'standard'"
+        (click)="codeSubTab.set('standard')">
+        Standard Usage
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'errorHandling'"
+        (click)="codeSubTab.set('errorHandling')">
+        Inner Error Resilience (catchError)
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'angular'"
+        (click)="codeSubTab.set('angular')">
+        Angular 20 Zoneless Signal Interop
+      </button>
+    </div>
+
+    @switch (codeSubTab()) {
+      @case ('standard') {
+        <app-code-block
+          [title]="config().name + ' — Standard Usage Example'"
+          [code]="config().codeSnippet"
+          language="typescript"
+        />
+      }
+      @case ('errorHandling') {
+        <app-code-block
+          [title]="config().name + ' — Fault-Tolerant Inner Error Handling (F36.B1)'"
+          [code]="config().errorHandlingSnippet"
+          language="typescript"
+        />
+      }
+      @case ('angular') {
+        <app-code-block
+          [title]="config().name + ' — Angular 20 Zoneless Signal / toObservable Pattern'"
+          [code]="config().angularPatternSnippet"
+          language="typescript"
+        />
+      }
+    }
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-pane visual-pane">
+    <!-- Controls Panel -->
+    <div class="controls-panel">
+      <div class="panel-header">
+        <div class="title-with-badge">
+          <h3>🎮 Interactive Timeline Controls</h3>
+          <span class="active-op-badge">{{ config().name }}</span>
+        </div>
+        <div class="quick-actions">
+          <button class="btn btn-secondary" (click)="simulateTeardown()" title="Simulate stream unsubscription (F36.B5)">
+            ⏹ Teardown / Unsubscribe
+          </button>
+          <button class="btn btn-danger" (click)="resetTimeline()" title="Reset timeline and queue">
+            🔄 Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Trigger Buttons -->
+      <div class="action-buttons-row">
+        <button class="btn btn-primary" (click)="triggerSingle()">
+          <span class="icon">▶</span> Single Request
+        </button>
+        <button class="btn btn-primary-gradient" (click)="triggerBurst()">
+          <span class="icon">⚡</span> Burst Trigger (3 Rapid Requests)
+        </button>
+
+        <label class="toggle-control live-api-toggle">
+          <input type="checkbox" [checked]="useLiveApi()" (change)="useLiveApi.set(!useLiveApi())" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Live Express API (<code>GET /api/slow</code>)</span>
+        </label>
+      </div>
+
+      <!-- Parameters Grid -->
+      <div class="parameters-grid">
+        <!-- Duration Slider -->
+        <div class="param-card">
+          <div class="param-header">
+            <label for="delayRange">Simulated Request Delay</label>
+            <span class="param-val">{{ simulatedDelayMs() }}ms</span>
+          </div>
+          <input
+            id="delayRange"
+            type="range"
+            min="500"
+            max="5000"
+            step="250"
+            [value]="simulatedDelayMs()"
+            (input)="onDelayChange($event)"
+          />
+          <span class="param-hint">Adjust delay to observe race conditions and queueing in real time.</span>
+        </div>
+
+        <!-- Concurrency Slider (for mergeMap) -->
+        @if (isMergeMap()) {
+          <div class="param-card merge-concurrency-card">
+            <div class="param-header">
+              <label for="concurrencyRange">Concurrency Limit (Concurrent Inner Observables)</label>
+              <span class="param-val">{{ concurrencyLimit() }}</span>
+            </div>
+            <input
+              id="concurrencyRange"
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              [value]="concurrencyLimit()"
+              (input)="onConcurrencyChange($event)"
+            />
+            @if (concurrencyLimit() === 1) {
+              <div class="equivalence-alert">
+                <span class="alert-icon">💡</span>
+                <span><strong>F36.B4 Equivalence:</strong> With Concurrency = 1, <code>mergeMap(project, 1)</code> behaves identically to <code>concatMap</code>!</span>
+              </div>
+            } @else {
+              <span class="param-hint">Processes up to {{ concurrencyLimit() }} requests in parallel, queueing the rest.</span>
+            }
+          </div>
+        }
+
+        <!-- Custom Request Trigger -->
+        <div class="param-card custom-trigger-card">
+          <div class="param-header">
+            <label>Custom Outer Emission</label>
+          </div>
+          <div class="custom-input-group">
+            <input
+              type="text"
+              class="form-input"
+              placeholder="Query / Payload"
+              [(ngModel)]="customLabelInput"
+            />
+            <input
+              type="number"
+              class="form-input number-input"
+              placeholder="ms"
+              [(ngModel)]="customDelayInput"
+              min="200"
+              max="10000"
+              step="100"
+            />
+            <button class="btn btn-outline" (click)="triggerCustom()">
+              Emit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animated Concurrent Swimlane Visualizer -->
+    <app-hoo-timeline-visualizer [snapshot]="snapshot()" />
+
+    <!-- Live Event Console -->
+    <app-output-console
+      [entries]="consoleEntries()"
+      [title]="config().name + ' Event Console'"
+      (clear)="clearConsole()"
+    />
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-pane comparison-pane">
+    <app-comparison-table
+      [data]="config().comparison"
+      [highlightColumnId]="config().id"
+    />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-pane quiz-pane">
+    <app-quiz-block
+      [questions]="config().quiz"
+      [topicId]="config().id"
+    />
+  </div>
+</app-playground-wrapper>

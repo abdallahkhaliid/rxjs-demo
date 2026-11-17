@@ -1,0 +1,480 @@
+@if (topic(); as data) {
+  <app-playground-wrapper
+    [title]="data.title"
+    [subtitle]="data.subtitle"
+    [category]="data.category"
+    [difficulty]="data.difficulty"
+    [topicId]="data.id"
+    [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+    [(activeTab)]="activeTab"
+  >
+    <!-- 1. Concept Tab -->
+    <div slot="concept" class="tab-container concept-panel">
+      <div class="concept-summary-card">
+        <p class="summary-text">{{ data.concept.summary }}</p>
+      </div>
+
+      @if (data.concept.pillars && data.concept.pillars.length > 0) {
+        <div class="pillars-section">
+          <h2 class="section-heading">{{ data.concept.pillarsTitle || 'Foundational Principles' }}</h2>
+          <div class="pillars-grid">
+            @for (pillar of data.concept.pillars; track pillar.title) {
+              <div class="pillar-card">
+                <h3 class="pillar-title">{{ pillar.title }}</h3>
+                <p class="pillar-desc">{{ pillar.description }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="deep-dive-section">
+        @for (section of data.concept.sections; track section.title) {
+          <div class="deep-dive-card">
+            <h3>{{ section.title }}</h3>
+            <p>{{ section.content }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="takeaways-card">
+        <h3>💡 Key Takeaways</h3>
+        <ul>
+          @for (takeaway of data.concept.takeaways; track takeaway) {
+            <li>{{ takeaway }}</li>
+          }
+        </ul>
+      </div>
+    </div>
+
+    <!-- 2. Code Tab -->
+    <div slot="code" class="tab-container">
+      <app-code-block
+        [title]="data.code.title"
+        [code]="data.code.code"
+        [language]="data.code.language"
+        [highlightLines]="data.code.highlightLines || []"
+      />
+    </div>
+
+    <!-- 3. Visual Demo Tab -->
+    <div slot="visual" class="tab-container visual-demo-container">
+      <div class="demo-header">
+        <h2 class="demo-title">{{ data.demo.title }}</h2>
+        <p class="demo-desc">{{ data.demo.description }}</p>
+      </div>
+
+      <!-- Simulator 1: what-is-rxjs -->
+      @if (data.id === 'what-is-rxjs') {
+        <div class="demo-interactive-grid">
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Pull Model (Synchronous Consumer Query)</h3>
+              <span class="status-badge idle">Demand Driven</span>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary">Consumer decides when to pull data. Producer is passive.</p>
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <span class="stat-label">Pulled Items</span>
+                  <span class="stat-value">{{ pullCount() }}</span>
+                </div>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-primary" (click)="simulatePull()" type="button">
+                  📥 Simulate Pull (Consumer Requests Next)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Push Model (Reactive Producer Stream)</h3>
+              <span class="status-badge" [class.active]="isPushing()" [class.idle]="!isPushing()">
+                {{ isPushing() ? 'Streaming' : 'Idle' }}
+              </span>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary">Producer decides when to send data. Consumer receives reactively.</p>
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <span class="stat-label">Pushed Emissions</span>
+                  <span class="stat-value">{{ pushCount() }}</span>
+                </div>
+              </div>
+              <div class="action-buttons">
+                @if (!isPushing()) {
+                  <button class="btn btn-primary" (click)="startPushStream()" type="button">
+                    ▶ Start Push Stream (Producer Emits)
+                  </button>
+                } @else {
+                  <button class="btn btn-danger" (click)="stopPushStream()" type="button">
+                    ⏹ Stop Push Stream
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Simulator 2: what-is-observable -->
+      @if (data.id === 'what-is-observable') {
+        <div class="demo-interactive-grid">
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Blueprint Declaration</h3>
+              <span class="status-badge" [class.active]="blueprintCreated()" [class.idle]="!blueprintCreated()">
+                {{ blueprintCreated() ? 'Blueprint Ready' : 'Uninitialized' }}
+              </span>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary">Observable creation does NOT emit anything until .subscribe() is called.</p>
+              <div class="action-buttons">
+                <button class="btn btn-secondary" (click)="createBlueprint()" type="button" [disabled]="blueprintCreated()">
+                  📋 Instantiate Blueprint
+                </button>
+                <button class="btn btn-danger" (click)="triggerProducerError()" type="button" [disabled]="!subAActive() && !subBActive()">
+                  ⚠️ Force Producer Error
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Independent Unicast Observers</h3>
+              <span class="status-badge active">Unicast (1:1)</span>
+            </div>
+            <div class="card-body">
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <span class="stat-label">Observer A</span>
+                  <span class="stat-value">{{ subAVal() ?? 'Idle' }}</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">Observer B</span>
+                  <span class="stat-value">{{ subBVal() ?? 'Idle' }}</span>
+                </div>
+              </div>
+              <div class="action-buttons">
+                @if (!subAActive()) {
+                  <button class="btn btn-primary" (click)="subscribeA()" type="button">
+                    ▶ Subscribe Observer A
+                  </button>
+                } @else {
+                  <button class="btn btn-outline" (click)="unsubscribeA()" type="button">
+                    ⏹ Unsubscribe A
+                  </button>
+                }
+
+                @if (!subBActive()) {
+                  <button class="btn btn-secondary" (click)="subscribeB()" type="button">
+                    ▶ Subscribe Observer B (Late)
+                  </button>
+                } @else {
+                  <button class="btn btn-outline" (click)="unsubscribeB()" type="button">
+                    ⏹ Unsubscribe B
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Simulator 3: observable-vs-promise -->
+      @if (data.id === 'observable-vs-promise') {
+        <div class="demo-interactive-grid">
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Promise Execution (Eager & Non-Cancellable)</h3>
+              <span class="status-badge" [class.warning]="promiseRunning()" [class.active]="promiseResolved()">
+                {{ promiseRunning() ? 'Resolving...' : promiseResolved() ? 'Resolved' : 'Idle' }}
+              </span>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary">Executes immediately on declaration. Cannot abort once started.</p>
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <span class="stat-label">Promise State</span>
+                  <span class="stat-value">{{ promiseState() }}</span>
+                </div>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-primary" (click)="startPromiseDemo()" type="button" [disabled]="promiseRunning()">
+                  ▶ Start Eager Promise (3s)
+                </button>
+                <button class="btn btn-outline" (click)="tryCancelPromise()" type="button">
+                  🚫 Try Cancel Promise
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Observable Execution (Lazy & Cancellable)</h3>
+              <span class="status-badge" [class.active]="obsRunning()" [class.idle]="!obsRunning()">
+                {{ obsRunning() ? 'Streaming' : obsCancelled() ? 'Cancelled' : 'Idle' }}
+              </span>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary">Runs only when subscribed. Calling unsubscribe() aborts immediately.</p>
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <span class="stat-label">Countdown Tick</span>
+                  <span class="stat-value">{{ obsTick() }}</span>
+                </div>
+              </div>
+              <div class="action-buttons">
+                @if (!obsRunning()) {
+                  <button class="btn btn-primary" (click)="startObservableDemo()" type="button">
+                    ▶ Start Lazy Observable (5s Countdown)
+                  </button>
+                } @else {
+                  <button class="btn btn-danger" (click)="cancelObservableDemo()" type="button">
+                    ⏹ Cancel Observable (Unsubscribe)
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Simulator 4: observer-subscriber -->
+      @if (data.id === 'observer-subscriber') {
+        <div class="demo-interactive-grid">
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>SafeSubscriber Protection Controller</h3>
+              <span class="status-badge" [class.danger]="streamTerminated()" [class.active]="!streamTerminated()">
+                {{ streamTerminated() ? 'Terminated (Closed)' : 'Active Channel' }}
+              </span>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary">SafeSubscriber blocks illegal notifications after complete/error and shields exceptions.</p>
+              <div class="action-buttons">
+                <button class="btn btn-primary" (click)="safeEmitNext()" type="button">
+                  📤 subscriber.next(Value)
+                </button>
+                <button class="btn btn-secondary" (click)="safeEmitComplete()" type="button" [disabled]="streamTerminated()">
+                  ✅ subscriber.complete()
+                </button>
+                <button class="btn btn-danger" (click)="safeEmitError()" type="button" [disabled]="streamTerminated()">
+                  ❌ subscriber.error()
+                </button>
+                <button class="btn btn-warning" (click)="resetSafeStream()" type="button">
+                  🔄 Reset Stream
+                </button>
+              </div>
+
+              <div style="margin-top: var(--space-3);">
+                <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                  <input type="checkbox" [checked]="simulateExceptionInNext()" (change)="toggleExceptionInNext()" />
+                  Simulate uncaught error in user next() callback
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Simulator 5: subscription-lifecycle -->
+      @if (data.id === 'subscription-lifecycle') {
+        <div class="demo-interactive-grid">
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Hierarchical Subscription Tree</h3>
+              <span class="status-badge" [class.active]="treeParentActive()" [class.idle]="!treeParentActive()">
+                {{ treeParentActive() ? 'Tree Active' : 'Tree Closed' }}
+              </span>
+            </div>
+            <div class="card-body">
+              <div class="tree-container">
+                <div class="tree-node parent">
+                  <span class="node-label">📂 Root Composite Subscription</span>
+                  <span class="status-badge" [class.active]="treeParentActive()" [class.idle]="!treeParentActive()">
+                    {{ treeParentActive() ? 'Active' : 'Closed' }}
+                  </span>
+                </div>
+                <div class="tree-node child">
+                  <span class="node-label">├─ 📡 Stream 1: Telemetry (600ms)</span>
+                  <span class="status-badge" [class.active]="treeChild1Active()" [class.idle]="!treeChild1Active()">
+                    {{ treeChild1Active() ? 'Active' : 'Closed' }}
+                  </span>
+                </div>
+                <div class="tree-node child">
+                  <span class="node-label">├─ 💓 Stream 2: Heartbeat (1200ms)</span>
+                  <span class="status-badge" [class.active]="treeChild2Active()" [class.idle]="!treeChild2Active()">
+                    {{ treeChild2Active() ? 'Active' : 'Closed' }}
+                  </span>
+                </div>
+                <div class="tree-node child">
+                  <span class="node-label">└─ 🖥️ Stream 3: DOM Resize (Event)</span>
+                  <span class="status-badge" [class.active]="treeChild3Active()" [class.idle]="!treeChild3Active()">
+                    {{ treeChild3Active() ? 'Active' : 'Closed' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="action-buttons">
+                <button class="btn btn-primary" (click)="initSubscriptionTree()" type="button" [disabled]="treeParentActive()">
+                  🌱 Initialize Subscription Tree
+                </button>
+                <button class="btn btn-secondary" (click)="unsubscribeChild2Only()" type="button" [disabled]="!treeChild2Active()">
+                  ✂️ Unsubscribe Child 2 Only
+                </button>
+                <button class="btn btn-danger" (click)="unsubscribeParentTree()" type="button" [disabled]="!treeParentActive()">
+                  💥 Unsubscribe Parent (Cascade Teardown)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Simulator 6: cold-vs-hot -->
+      @if (data.id === 'cold-vs-hot') {
+        <div class="demo-interactive-grid">
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Cold Stream (Movie on Demand)</h3>
+              <span class="status-badge idle">Unicast</span>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary">Producer created inside. Each viewer starts sequence from frame 1.</p>
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <span class="stat-label">Viewer 1 Frame</span>
+                  <span class="stat-value">{{ viewer1Frame() }}</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">Viewer 2 (Late)</span>
+                  <span class="stat-value">{{ viewer2Frame() }}</span>
+                </div>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-primary" (click)="startViewer1()" type="button" [disabled]="viewer1Running()">
+                  ▶ Start Viewer 1
+                </button>
+                <button class="btn btn-secondary" (click)="startViewer2()" type="button" [disabled]="viewer2Running()">
+                  ▶ Start Viewer 2 (Late)
+                </button>
+                <button class="btn btn-outline" (click)="stopColdViewers()" type="button">
+                  ⏹ Stop Viewers
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Hot Stream (Live Radio Broadcast)</h3>
+              <span class="status-badge active">Multicast</span>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary">Producer created outside and broadcasts live. Late listeners miss earlier ticks.</p>
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <span class="stat-label">Live Broadcast Tick</span>
+                  <span class="stat-value">{{ liveBroadcastTick() }}</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">Listener 3</span>
+                  <span class="stat-value">{{ listener3Tick() ?? 'Off' }}</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">Listener 4 (Late)</span>
+                  <span class="stat-value">{{ listener4Tick() ?? 'Off' }}</span>
+                </div>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-primary" (click)="tuneInListener3()" type="button" [disabled]="listener3Active()">
+                  📻 Tune In Listener 3
+                </button>
+                <button class="btn btn-secondary" (click)="tuneInListener4()" type="button" [disabled]="listener4Active()">
+                  📻 Tune In Listener 4 (Late)
+                </button>
+                <button class="btn btn-outline" (click)="disconnectListeners()" type="button">
+                  ⏹ Disconnect Listeners
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Simulator 7: multicasting -->
+      @if (data.id === 'multicasting') {
+        <div class="demo-interactive-grid">
+          <div class="demo-card">
+            <div class="card-header">
+              <h3>Multicast Mode & Network Efficiency</h3>
+              <div class="mode-toggle-group">
+                <button [class.active]="multicastMode() === 'unicast'" (click)="setMulticastMode('unicast')" type="button">
+                  Unshared Cold
+                </button>
+                <button [class.active]="multicastMode() === 'multicast'" (click)="setMulticastMode('multicast')" type="button">
+                  shareReplay(1)
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <span class="stat-label">Network Calls</span>
+                  <span class="stat-value" [style.color]="networkCalls() > 1 && multicastMode() === 'unicast' ? 'var(--color-danger)' : 'var(--color-primary-400)'">
+                    {{ networkCalls() }}
+                  </span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">Active Consumers</span>
+                  <span class="stat-value">{{ activeConsumersCount() }}</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-label">Bandwidth Saved</span>
+                  <span class="stat-value" style="color: var(--color-success)">{{ bandwidthSaved() }}%</span>
+                </div>
+              </div>
+
+              <div class="action-buttons">
+                <button class="btn btn-primary" (click)="mountComponent('Header Nav')" type="button">
+                  🧩 Mount Header Nav
+                </button>
+                <button class="btn btn-secondary" (click)="mountComponent('User Profile')" type="button">
+                  🧩 Mount User Profile
+                </button>
+                <button class="btn btn-secondary" (click)="mountComponent('Settings Panel')" type="button">
+                  🧩 Mount Settings Panel
+                </button>
+                <button class="btn btn-danger" (click)="unmountAllComponents()" type="button" [disabled]="activeConsumersCount() === 0">
+                  ⏹ Unmount All
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Console output for all topics -->
+      <app-output-console
+        title="Live Stream Output"
+        [entries]="consoleEntries()"
+        (clear)="clearConsole()"
+      />
+    </div>
+
+    <!-- 4. Comparison Tab -->
+    <div slot="comparison" class="tab-container">
+      <app-comparison-table [data]="data.comparison" />
+    </div>
+
+    <!-- 5. Quiz Tab -->
+    <div slot="quiz" class="tab-container">
+      <app-quiz-block [questions]="data.quiz" [topicId]="data.id" />
+    </div>
+  </app-playground-wrapper>
+}

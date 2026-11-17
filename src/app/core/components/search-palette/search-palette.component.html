@@ -1,0 +1,212 @@
+@if (searchService.isSearchOpen()) {
+  <div class="search-modal-backdrop palette-backdrop" (click)="closeSearch()">
+    <div
+      class="search-modal-dialog palette-dialog card"
+      (click)="$event.stopPropagation()"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Global Command Palette"
+    >
+      <!-- Search Input Header -->
+      <div class="search-modal-header palette-header">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+
+        <input
+          #searchInputEl
+          id="global-search-input"
+          class="search-modal-input palette-input"
+          type="text"
+          placeholder="Search 113+ operators, lessons, recipes, or mini-projects... (e.g. switchMap, debounceTime, cache)"
+          [value]="searchInput()"
+          (input)="onSearchInputChange($any($event.target).value)"
+          (keydown)="handleSearchKeyDown($event)"
+          autocomplete="off"
+          spellcheck="false"
+        />
+
+        @if (searchInput().trim().length > 0) {
+          <button class="clear-btn" (click)="clearQuery()" type="button" aria-label="Clear query">
+            ✕
+          </button>
+        }
+
+        <kbd class="esc-badge" (click)="closeSearch()">Esc</kbd>
+      </div>
+
+      <!-- Quick Filter Bar -->
+      <div class="palette-filter-bar">
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="selectedCategoryFilter() === 'all'"
+          (click)="setCategoryFilter('all')"
+        >
+          All ({{ searchService.searchResults().length }})
+        </button>
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="selectedCategoryFilter() === 'operator'"
+          (click)="setCategoryFilter('operator')"
+        >
+          Operators
+        </button>
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="selectedCategoryFilter() === 'concept'"
+          (click)="setCategoryFilter('concept')"
+        >
+          Concepts
+        </button>
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="selectedCategoryFilter() === 'angular'"
+          (click)="setCategoryFilter('angular')"
+        >
+          Angular
+        </button>
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="selectedCategoryFilter() === 'project'"
+          (click)="setCategoryFilter('project')"
+        >
+          Mini-Projects
+        </button>
+      </div>
+
+      <!-- Body Section -->
+      <div class="search-modal-body palette-body">
+        @if (filteredResults().length > 0) {
+          <div class="results-container">
+            <div class="results-count-banner">
+              <span>{{ filteredResults().length }} result{{ filteredResults().length === 1 ? '' : 's' }} found</span>
+            </div>
+
+            <ul class="search-results-list palette-list" role="listbox">
+              @for (item of filteredResults(); track item.id; let i = $index) {
+                <li
+                  class="search-result-item palette-item"
+                  [class.selected]="i === selectedResultIndex()"
+                  (click)="selectSearchResult(item)"
+                  (mouseenter)="selectedResultIndex.set(i)"
+                  role="option"
+                  [attr.aria-selected]="i === selectedResultIndex()"
+                >
+                  <div class="result-icon item-type-icon">
+                    @switch (item.type) {
+                      @case ('creation') { ✨ }
+                      @case ('transformation') { 🔄 }
+                      @case ('filtering') { 🔍 }
+                      @case ('combination') { 🔀 }
+                      @case ('utility') { 🛠️ }
+                      @case ('multicasting') { 📡 }
+                      @case ('higher-order') { ⚡ }
+                      @case ('subject') { 📦 }
+                      @case ('scheduler') { ⏱️ }
+                      @case ('angular') { 🅰️ }
+                      @case ('project') { 🚀 }
+                      @default { 💡 }
+                    }
+                  </div>
+
+                  <div class="result-details item-content">
+                    <div class="item-headline">
+                      <span class="result-title item-title">{{ item.title }}</span>
+                      <span class="result-category item-category-badge">{{ item.category }}</span>
+                      @if (item.difficulty) {
+                        <span class="item-diff-badge" [class]="item.difficulty">{{ item.difficulty }}</span>
+                      }
+                    </div>
+                    <p class="item-desc">{{ item.description }}</p>
+                    @if (item.tags && item.tags.length > 0) {
+                      <div class="item-tags">
+                        @for (tag of item.tags.slice(0, 4); track tag) {
+                          <span class="item-tag">#{{ tag }}</span>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <span class="result-arrow select-indicator">↵</span>
+                </li>
+              }
+            </ul>
+          </div>
+        } @else if (searchInput().trim().length > 0) {
+          <div class="search-empty-state palette-empty-state">
+            <div class="empty-icon">🔍</div>
+            <h4>No matching topics or operators</h4>
+            <p>No results found for "<strong>{{ searchInput() }}</strong>"</p>
+            <div class="empty-suggestions">
+              <span class="search-empty-hint">Try searching for:</span>
+              <div class="suggestion-chips">
+                <button type="button" class="badge badge-primary chip" (click)="onSearchInputChange('switchMap')">switchMap</button>
+                <button type="button" class="badge badge-cyan chip" (click)="onSearchInputChange('BehaviorSubject')">BehaviorSubject</button>
+                <button type="button" class="badge badge-purple chip" (click)="onSearchInputChange('combineLatest')">combineLatest</button>
+                <button type="button" class="badge badge-magenta chip" (click)="onSearchInputChange('takeUntilDestroyed')">takeUntilDestroyed</button>
+                <button type="button" class="badge badge-warning chip" (click)="onSearchInputChange('Autocomplete')">Autocomplete</button>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <!-- Empty Query Default State -->
+          <div class="search-suggestions palette-default-state">
+            <span class="suggestions-label section-label">Popular Searches & Quick Jumps</span>
+            <div class="suggestions-chips quick-jump-grid">
+              <button class="quick-card badge badge-primary" (click)="onSearchInputChange('switchMap')" type="button">
+                <span class="qc-icon">⚡</span>
+                <div class="qc-info">
+                  <span class="qc-title">switchMap</span>
+                  <span class="qc-desc">HOO timeline & cancellation</span>
+                </div>
+              </button>
+              <button class="quick-card badge badge-cyan" (click)="onSearchInputChange('BehaviorSubject')" type="button">
+                <span class="qc-icon">📦</span>
+                <div class="qc-info">
+                  <span class="qc-title">BehaviorSubject</span>
+                  <span class="qc-desc">Dynamic sandbox & state store</span>
+                </div>
+              </button>
+              <button class="quick-card badge badge-purple" (click)="onSearchInputChange('combineLatest')" type="button">
+                <span class="qc-icon">🔀</span>
+                <div class="qc-info">
+                  <span class="qc-title">combineLatest</span>
+                  <span class="qc-desc">Multi-stream combination</span>
+                </div>
+              </button>
+              <button class="quick-card badge badge-magenta" (click)="onSearchInputChange('takeUntilDestroyed')" type="button">
+                <span class="qc-icon">🅰️</span>
+                <div class="qc-info">
+                  <span class="qc-title">takeUntilDestroyed</span>
+                  <span class="qc-desc">Angular 20 lifecycle teardown</span>
+                </div>
+              </button>
+              <button class="quick-card badge badge-warning" (click)="onSearchInputChange('Autocomplete')" type="button">
+                <span class="qc-icon">🚀</span>
+                <div class="qc-info">
+                  <span class="qc-title">Autocomplete</span>
+                  <span class="qc-desc">Mini-project live backend search</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Footer Keyboard Shortcuts -->
+      <div class="search-modal-footer palette-footer">
+        <div class="footer-shortcuts">
+          <div class="footer-hint"><kbd>↑</kbd><kbd>↓</kbd> <span>Navigate</span></div>
+          <div class="footer-hint"><kbd>↵</kbd> <span>Select</span></div>
+          <div class="footer-hint"><kbd>Esc</kbd> <span>Close</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

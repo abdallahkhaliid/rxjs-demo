@@ -1,0 +1,176 @@
+<div class="hoo-overview-container">
+  <!-- Hero Section -->
+  <header class="overview-hero">
+    <div class="hero-badge">MODULE 4</div>
+    <h1 class="hero-title">Higher-Order Observables & Flattening Strategies</h1>
+    <p class="hero-subtitle">
+      Conquer nested asynchronous streams. Master the behavioral divergence between
+      <strong>switchMap</strong>, <strong>mergeMap</strong>, <strong>concatMap</strong>, and <strong>exhaustMap</strong>
+      through animated concurrent timelines and live race simulations.
+    </p>
+  </header>
+
+  <!-- Section 1: The Flattening Challenge -->
+  <section class="overview-section challenge-section">
+    <div class="section-card">
+      <div class="card-icon">🔀</div>
+      <div class="card-body">
+        <h2>The "Higher-Order" Challenge & Nested Subscribes</h2>
+        <p>
+          A Higher-Order Observable is an Observable that emits other Observables (<code>Observable&lt;Observable&lt;T&gt;&gt;</code>).
+          In Angular, this occurs constantly: an outer stream (like a user button click or search input) maps to an inner stream (such as an HTTP request).
+        </p>
+        <div class="anti-pattern-box">
+          <div class="bad-code">
+            <span class="pill-bad">❌ Anti-Pattern: Nested Subscribe ("Pyramid of Doom")</span>
+            <pre><code>searchQuery$.subscribe(query => {{ '{' }}
+  http.get('/api/search?q=' + query).subscribe(results => {{ '{' }}
+    this.results = results; // Stale race conditions & memory leaks!
+  {{ '}' }});
+{{ '}' }});</code></pre>
+          </div>
+          <div class="good-code">
+            <span class="pill-good">✓ Idiomatic RxJS: Flattening Operator</span>
+            <pre><code>readonly results$ = searchQuery$.pipe(
+  switchMap(query => http.get('/api/search?q=' + query))
+); // Zero leaks, cancels stale queries, fully reactive!</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2: 4-Way Comparison Race Demo -->
+  <section class="overview-section race-section">
+    <div class="section-header">
+      <div class="title-area">
+        <h2>🏁 Synchronized 4-Way Comparison Race Demo</h2>
+        <p>
+          Witness the fundamental divergence in real time. Click the button to fire <strong>3 identical requests</strong>
+          simultaneously across all 4 flattening operators!
+        </p>
+      </div>
+
+      <div class="race-actions">
+        <button class="btn btn-primary-gradient" (click)="runFourWayRace()">
+          <span class="icon">🚀</span> Run 4-Way Comparison Race (Burst 3 Requests)
+        </button>
+        <button class="btn btn-secondary" (click)="resetRace()">
+          🔄 Reset All
+        </button>
+      </div>
+    </div>
+
+    <!-- 4 Timelines Grid -->
+    <div class="race-grid">
+      <!-- switchMap Track -->
+      <div class="race-card switchmap-card">
+        <div class="card-header">
+          <span class="op-name">switchMap</span>
+          <span class="op-badge badge-switch">Preemptive / Cancel</span>
+        </div>
+        <p class="op-takeaway">Cancels Req 1 & 2 mid-flight. Only Req 3 completes and emits.</p>
+        <app-hoo-timeline-visualizer [snapshot]="switchMapEngine.snapshot()" [compact]="true" />
+      </div>
+
+      <!-- mergeMap Track -->
+      <div class="race-card mergemap-card">
+        <div class="card-header">
+          <span class="op-name">mergeMap</span>
+          <span class="op-badge badge-merge">Concurrent / Parallel</span>
+        </div>
+        <p class="op-takeaway">Executes all 3 requests in parallel simultaneously. First to finish emits first.</p>
+        <app-hoo-timeline-visualizer [snapshot]="mergeMapEngine.snapshot()" [compact]="true" />
+      </div>
+
+      <!-- concatMap Track -->
+      <div class="race-card concatmap-card">
+        <div class="card-header">
+          <span class="op-name">concatMap</span>
+          <span class="op-badge badge-concat">Sequential / FIFO Queue</span>
+        </div>
+        <p class="op-takeaway">Queues Req 2 & 3. Executes strictly one-after-another in FIFO arrival order.</p>
+        <app-hoo-timeline-visualizer [snapshot]="concatMapEngine.snapshot()" [compact]="true" />
+      </div>
+
+      <!-- exhaustMap Track -->
+      <div class="race-card exhaustmap-card">
+        <div class="card-header">
+          <span class="op-name">exhaustMap</span>
+          <span class="op-badge badge-exhaust">Guarded / Ignore</span>
+        </div>
+        <p class="op-takeaway">Accepts Req 1. Drops Req 2 & 3 completely while Req 1 is in-flight.</p>
+        <app-hoo-timeline-visualizer [snapshot]="exhaustMapEngine.snapshot()" [compact]="true" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Decision Flowchart -->
+  <section class="overview-section decision-section">
+    <h2>🧭 Flattening Decision Matrix: Which Operator to Choose?</h2>
+    <div class="decision-grid">
+      <div class="decision-card">
+        <div class="condition">"Do I only care about the latest result?"</div>
+        <div class="recommendation switch">
+          <span class="icon">🔀</span>
+          <strong>switchMap</strong>
+          <span class="sub">Autocomplete, route params, tab switching</span>
+        </div>
+      </div>
+
+      <div class="decision-card">
+        <div class="condition">"Must all requests execute as fast as possible in parallel?"</div>
+        <div class="recommendation merge">
+          <span class="icon">⚡</span>
+          <strong>mergeMap</strong>
+          <span class="sub">Batch downloading, asset uploads, independent queries</span>
+        </div>
+      </div>
+
+      <div class="decision-card">
+        <div class="condition">"Must requests execute in strict arrival order without loss?"</div>
+        <div class="recommendation concat">
+          <span class="icon">⏳</span>
+          <strong>concatMap</strong>
+          <span class="sub">Database writes, message dispatch, sequential transactions</span>
+        </div>
+      </div>
+
+      <div class="decision-card">
+        <div class="condition">"Must incoming clicks be ignored until current one finishes?"</div>
+        <div class="recommendation exhaust">
+          <span class="icon">🛡️</span>
+          <strong>exhaustMap</strong>
+          <span class="sub">Login buttons, payment checkout, refresh actions</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: Operator Playgrounds Navigation -->
+  <section class="overview-section nav-cards-section">
+    <h2>🚀 Individual Operator Playgrounds</h2>
+    <div class="operator-nav-grid">
+      @for (card of operatorCards; track card.id) {
+        <a [routerLink]="card.path" class="operator-nav-card" [style.--card-accent]="card.accentColor">
+          <div class="card-top">
+            <span class="icon">{{ card.icon }}</span>
+            <span class="badge">{{ card.badge }}</span>
+          </div>
+          <h3 class="name">{{ card.name }}</h3>
+          <p class="summary">{{ card.summary }}</p>
+          <div class="card-footer">
+            <span>Explore Playground & Quizzes</span>
+            <span class="arrow">→</span>
+          </div>
+        </a>
+      }
+    </div>
+  </section>
+
+  <!-- Section 5: Master Comparison Table -->
+  <section class="overview-section comparison-section">
+    <h2>⚖️ Master Architectural Comparison Table</h2>
+    <app-comparison-table [data]="comparisonData" />
+  </section>
+</div>

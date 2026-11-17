@@ -1,0 +1,107 @@
+<header class="topbar-container">
+  <div class="topbar-left">
+    <button
+      class="btn-icon mobile-menu-toggle"
+      (click)="toggleSidenav.emit()"
+      aria-label="Toggle navigation menu"
+      type="button"
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+
+    <a routerLink="/" class="brand-link">
+      <div class="brand-logo">
+        <span class="logo-symbol">⟁</span>
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">RxJS <span class="brand-highlight">Lab</span></span>
+        <span class="brand-badge">Angular 20</span>
+      </div>
+    </a>
+  </div>
+
+  <div class="topbar-center">
+    <button class="search-trigger-btn" (click)="openSearch()" type="button" aria-label="Open global search palette">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <span class="search-placeholder">Quick search operators, concepts...</span>
+      <kbd class="search-shortcut">Ctrl K</kbd>
+    </button>
+  </div>
+
+  <div class="topbar-right">
+    <!-- Interactive Progress Indicator Widget with Breakdown Dropdown -->
+    <div class="progress-widget-container">
+      <button
+        class="progress-widget"
+        type="button"
+        (click)="toggleProgressDetails()"
+        [attr.aria-expanded]="isProgressDetailsOpen()"
+        title="Click to view curriculum progress breakdown"
+      >
+        <div class="progress-meta">
+          <span class="progress-label">Progress</span>
+          <span class="progress-value">
+            {{ progressService.completedCount() }} / {{ progressService.totalTopicsCount() }} ({{ progressService.completionPercentage() }}%)
+          </span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" [style.width.%]="progressService.completionPercentage()"></div>
+        </div>
+      </button>
+
+      @if (isProgressDetailsOpen()) {
+        <div class="progress-dropdown card" (click)="$event.stopPropagation()">
+          <div class="dropdown-header">
+            <span class="dropdown-title">Curriculum Mastery</span>
+            <span class="dropdown-badge">{{ progressService.completionPercentage() }}% Completed</span>
+          </div>
+          <div class="module-progress-list">
+            @for (mod of progressService.getAllModulesProgress(); track mod.moduleId) {
+              <div class="module-progress-row">
+                <span class="row-title">Module {{ mod.moduleNumber }}: {{ mod.title }}</span>
+                <div class="row-bar">
+                  <div class="row-bar-fill" [style.width.%]="mod.percentage"></div>
+                </div>
+                <span class="row-stat" [class.complete]="mod.isCompleted">
+                  @if (mod.isCompleted) { ✓ } @else { {{ mod.completed }}/{{ mod.total }} }
+                </span>
+              </div>
+            }
+          </div>
+          <div class="dropdown-footer">
+            <button class="btn btn-ghost btn-sm" (click)="progressService.resetProgress()" type="button">
+              Reset Progress
+            </button>
+            <button class="btn btn-ghost btn-sm" (click)="closeProgressDetails()" type="button">
+              Close
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Keyboard Shortcuts Button -->
+    <button
+      class="btn-icon shortcuts-btn"
+      (click)="openShortcutsHelp()"
+      title="Keyboard Shortcuts (?)"
+      type="button"
+      aria-label="Keyboard Shortcuts"
+    >
+      <span class="shortcuts-icon">?</span>
+    </button>
+
+    <!-- Server Status Indicator -->
+    <div class="server-badge" title="Express backend configured on port 9000">
+      <span class="status-dot active"></span>
+      <span class="server-text">API :9000</span>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,285 @@
+<div class="operator-catalog-container">
+  <!-- 1. Header with Category Badges -->
+  <header class="catalog-header">
+    <div class="category-tabs" role="tablist" aria-label="Operator Categories">
+      @for (cat of categories; track cat.id) {
+        <button
+          type="button"
+          role="tab"
+          class="category-tab-btn"
+          [class.active]="selectedCategory() === cat.id"
+          [attr.aria-selected]="selectedCategory() === cat.id"
+          (click)="setCategory(cat.id)"
+        >
+          <span class="cat-icon">{{ cat.icon }}</span>
+          <span class="cat-title">{{ cat.title }}</span>
+          <span class="badge" [class]="cat.badgeClass">{{ cat.operatorIds.length }}</span>
+        </button>
+      }
+    </div>
+
+    <!-- Quick Search / Filter Input -->
+    <div class="search-filter-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Filter operators in {{ selectedCategory() }}..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        class="filter-input"
+      />
+      @if (searchQuery()) {
+        <button class="clear-filter-btn" (click)="searchQuery.set('')" type="button" aria-label="Clear filter">✕</button>
+      }
+    </div>
+  </header>
+
+  <!-- 2. Operator Selector Pills Ribbon -->
+  <nav class="operator-ribbon" aria-label="Operators">
+    @for (op of filteredOperators(); track op.id) {
+      <button
+        type="button"
+        class="operator-pill"
+        [class.active]="selectedOperatorId() === op.id"
+        [class.deprecated]="op.isDeprecated || op.metadata.isDeprecated"
+        (click)="selectOperator(op.id)"
+        [title]="op.metadata.summary"
+      >
+        <span class="pill-name">{{ op.name }}</span>
+        @if (op.isDeprecated || op.metadata.isDeprecated) {
+          <span class="pill-deprecated-tag" title="Deprecated in RxJS 7+">legacy</span>
+        }
+        @if (isOperatorCompleted(op.id)) {
+          <span class="pill-check">✓</span>
+        }
+      </button>
+    } @empty {
+      <div class="no-operators-found">No operators match "{{ searchQuery() }}"</div>
+    }
+  </nav>
+
+  <!-- Top-Level Deprecation Alert Banner -->
+  @if (currentOperator().isDeprecated || currentOperator().metadata.isDeprecated) {
+    <div class="deprecation-callout-banner" role="alert">
+      <div class="banner-badge">⚠️ DEPRECATED IN RxJS 7+</div>
+      <div class="banner-body">
+        <p class="banner-notice">
+          {{ currentOperator().deprecationNotice || currentOperator().metadata.deprecationNotice }}
+        </p>
+        @if (currentOperator().modernAlternative || currentOperator().metadata.modernAlternative) {
+          <div class="banner-modern">
+            <span class="modern-label">Modern RxJS 7+ Replacement:</span>
+            <code class="modern-code">{{ currentOperator().modernAlternative || currentOperator().metadata.modernAlternative }}</code>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- 3. Playground Wrapper Tabs Harness -->
+  <app-playground-wrapper
+    [title]="currentOperator().name + '()'"
+    [subtitle]="currentOperator().metadata.summary"
+    [category]="currentOperator().metadata.category"
+    [difficulty]="currentOperator().metadata.difficulty"
+    [topicId]="currentOperator().id"
+    [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+    [(activeTab)]="activeTab"
+  >
+    <!-- Slot 1: Concept Tab -->
+    <div slot="concept" class="tab-pane">
+      <app-operator-card [operator]="currentOperator().metadata" [showPlaygroundLink]="false" />
+    </div>
+
+    <!-- Slot 2: Code Tab -->
+    <div slot="code" class="tab-pane">
+      <app-code-block
+        [title]="currentOperator().name + ' Operator Example'"
+        [code]="currentOperator().codeSnippet"
+        language="typescript"
+      />
+    </div>
+
+    <!-- Slot 3: Visual Demo Tab -->
+    <div slot="visual" class="tab-pane visual-pane">
+      <!-- Interactive Parameter Panel -->
+      <div class="controls-card">
+        <div class="controls-header">
+          <div class="header-title">
+            <span class="gear-icon">⚙️</span>
+            <h3>Parameters &amp; Runner: <code>{{ currentOperator().name }}()</code></h3>
+          </div>
+          <span
+            class="stream-status-badge"
+            [class.running]="isRunning()"
+            [class.completed]="isCompleted()"
+            [class.idle]="!isRunning() && !isCompleted()"
+          >
+            @if (isRunning()) {
+              <span class="pulse-dot"></span> Streaming Active
+            } @else if (isCompleted()) {
+              ✓ Completed
+            } @else {
+              ○ Idle
+            }
+          </span>
+        </div>
+
+        <div class="params-grid">
+          <!-- Source Preset -->
+          <div class="param-group">
+            <label>Source Stream Preset</label>
+            <select [value]="selectedSourcePreset()" (change)="selectedSourcePreset.set($any($event.target).value)">
+              <option value="sync_numbers">Numbers (1, 2, 3, 4, 5)</option>
+              <option value="interval">Numbers Interval (500ms, take 5)</option>
+              <option value="burst">Rapid Burst (multi-emission cluster)</option>
+              <option value="words">Word Stream (timed array)</option>
+              <option value="duplicates">Duplicate Stream (1, 1, 2, 2, 3, 1)</option>
+              <option value="error">Failing Stream (emits, then throws Error)</option>
+              <option value="objects">Object Stream (id, name, role)</option>
+              <option value="custom">Custom Input Array</option>
+            </select>
+          </div>
+
+          @if (selectedSourcePreset() === 'custom') {
+            <div class="param-group">
+              <label>Custom Values (comma-separated)</label>
+              <input type="text" [value]="customSourceInput()" (input)="customSourceInput.set($any($event.target).value)" />
+            </div>
+          }
+
+          <!-- Secondary Stream (Combination Operators) -->
+          @if (currentOperator().category === 'combination') {
+            <div class="param-group">
+              <label>Secondary Stream (source2$)</label>
+              <select [value]="selectedSource2Preset()" (change)="selectedSource2Preset.set($any($event.target).value)">
+                <option value="words">Letters (A, B, C)</option>
+                <option value="interval">Numbers Interval (300ms: 10, 20, 30)</option>
+                <option value="sync_numbers">Numbers (10, 20)</option>
+              </select>
+            </div>
+          }
+
+          <!-- Dynamic Operator Parameters -->
+          @for (param of currentOperator().parameters; track param.id) {
+            <div class="param-group">
+              <label>{{ param.name }}</label>
+              @switch (param.type) {
+                @case ('slider') {
+                  <div class="slider-container">
+                    <input
+                      type="range"
+                      [min]="param.min ?? 0"
+                      [max]="param.max ?? 2000"
+                      [step]="param.step ?? 50"
+                      [value]="paramValues()[param.id] ?? param.defaultValue"
+                      (input)="updateParam(param.id, +$any($event.target).value)"
+                    />
+                    <span class="slider-value">{{ paramValues()[param.id] ?? param.defaultValue }}{{ param.unit || '' }}</span>
+                  </div>
+                }
+                @case ('number') {
+                  <input
+                    type="number"
+                    [min]="param.min ?? 0"
+                    [max]="param.max ?? 100"
+                    [step]="param.step ?? 1"
+                    [value]="paramValues()[param.id] ?? param.defaultValue"
+                    (input)="updateParam(param.id, +$any($event.target).value)"
+                  />
+                }
+                @case ('select') {
+                  <select
+                    [value]="paramValues()[param.id] ?? param.defaultValue"
+                    (change)="updateParam(param.id, $any($event.target).value)"
+                  >
+                    @for (opt of param.options; track opt.value) {
+                      <option [value]="opt.value">{{ opt.label }}</option>
+                    }
+                  </select>
+                }
+                @case ('boolean') {
+                  <label class="checkbox-label">
+                    <input
+                      type="checkbox"
+                      [checked]="paramValues()[param.id] ?? param.defaultValue"
+                      (change)="updateParam(param.id, $any($event.target).checked)"
+                    />
+                    {{ param.description || 'Enable option' }}
+                  </label>
+                }
+                @case ('text') {
+                  <input
+                    type="text"
+                    [value]="paramValues()[param.id] ?? param.defaultValue"
+                    (input)="updateParam(param.id, $any($event.target).value)"
+                  />
+                }
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="runner-actions">
+          @if (!isRunning()) {
+            <button class="btn btn-primary" (click)="runStream()" type="button">
+              ▶ Run Stream
+            </button>
+          } @else {
+            <button class="btn btn-danger" (click)="stopStream()" type="button">
+              ⏹ Stop Stream (Unsubscribe)
+            </button>
+          }
+
+          @if (currentOperator().hasNotifierTrigger) {
+            <button
+              class="btn btn-warning"
+              [disabled]="!isRunning()"
+              (click)="triggerNotifier()"
+              type="button"
+            >
+              {{ currentOperator().notifierLabel || '⚡ Emit Notifier Signal' }}
+            </button>
+          }
+
+          <button class="btn btn-outline" (click)="clearConsole()" type="button">
+            🗑 Clear Output
+          </button>
+        </div>
+      </div>
+
+      <!-- Dual-Track Marble Diagram -->
+      <app-marble-diagram
+        [inputStreams]="inputStreams()"
+        [operatorName]="currentOperator().name"
+        [outputStream]="outputMarbleStream()"
+        [durationMs]="durationMs()"
+        [isPlaying]="isRunning()"
+      />
+
+      <!-- Console Output -->
+      <app-output-console
+        [entries]="consoleEntries()"
+        (clear)="clearConsole()"
+      />
+    </div>
+
+    <!-- Slot 4: Comparison Tab -->
+    <div slot="comparison" class="tab-pane">
+      <app-comparison-table
+        [data]="currentOperator().comparison"
+        [highlightColumnId]="currentOperator().id"
+      />
+    </div>
+
+    <!-- Slot 5: Quiz Tab -->
+    <div slot="quiz" class="tab-pane">
+      <app-quiz-block
+        [questions]="currentOperator().quiz"
+        [topicId]="currentOperator().id"
+        (completed)="onQuizCompleted($event)"
+      />
+    </div>
+  </app-playground-wrapper>
+</div>

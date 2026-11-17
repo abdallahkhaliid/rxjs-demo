@@ -1,0 +1,198 @@
+.marble-container {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin: var(--space-4) 0;
+  box-shadow: var(--shadow-sm);
+
+  .marble-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-4);
+    background-color: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--color-border-subtle);
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+
+      .marble-icon {
+        font-size: 14px;
+      }
+
+      .marble-title {
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+      }
+
+      .operator-tag {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: var(--radius-xs);
+        background-color: var(--color-primary-glow);
+        color: var(--color-primary-400);
+        font-family: var(--font-mono);
+      }
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+
+      .speed-selector {
+        display: flex;
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+
+        .speed-btn {
+          padding: 2px 6px;
+          font-size: 10px;
+          background-color: transparent;
+          border: none;
+          color: var(--color-text-muted);
+          cursor: pointer;
+          font-family: var(--font-mono);
+
+          &:hover {
+            background-color: var(--color-bg-surface-elevated);
+            color: var(--color-text-primary);
+          }
+
+          &.active {
+            background-color: var(--color-primary-500);
+            color: #ffffff;
+            font-weight: bold;
+          }
+        }
+      }
+
+      .ctrl-btn {
+        padding: 3px 8px;
+        font-size: var(--font-size-xs);
+        color: var(--color-text-secondary);
+        background-color: transparent;
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+          color: var(--color-text-primary);
+          border-color: var(--color-border-default);
+          background-color: var(--color-bg-surface-hover);
+        }
+
+        &.play-btn.playing {
+          color: var(--color-accent-magenta);
+          border-color: rgba(236, 72, 153, 0.4);
+          background-color: rgba(236, 72, 153, 0.1);
+        }
+      }
+    }
+  }
+
+  .svg-viewport {
+    padding: var(--space-4) var(--space-2);
+    overflow-x: auto;
+
+    .marble-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+
+      .stream-group {
+        cursor: pointer;
+
+        .stream-label {
+          font-family: var(--font-mono);
+          font-size: 11px;
+          fill: var(--color-text-secondary);
+          font-weight: 500;
+
+          &.output-label {
+            fill: var(--color-accent-cyan);
+            font-weight: 600;
+          }
+        }
+
+        .timeline-axis {
+          stroke: var(--color-border-strong);
+          stroke-width: 2;
+          stroke-linecap: round;
+        }
+
+        .marker-completion {
+          stroke: var(--color-marble-complete);
+          stroke-width: 4;
+          stroke-linecap: round;
+        }
+
+        .marker-error line {
+          stroke: var(--color-danger);
+          stroke-width: 3.5;
+          stroke-linecap: round;
+        }
+
+        .marble-node {
+          cursor: pointer;
+          transition: transform 0.15s ease;
+
+          &:hover {
+            transform: scale(1.1);
+          }
+
+          .marble-circle {
+            stroke: rgba(255, 255, 255, 0.6);
+            stroke-width: 1.5;
+          }
+
+          .marble-text {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            fill: #ffffff;
+            pointer-events: none;
+          }
+        }
+      }
+
+      .operator-box-group {
+        .operator-box-rect {
+          fill: var(--color-bg-surface-elevated);
+          stroke: var(--color-primary-500);
+          stroke-width: 1.5;
+          stroke-dasharray: 4 2;
+        }
+
+        .operator-box-text {
+          font-family: var(--font-mono);
+          font-size: 12px;
+          fill: var(--color-primary-400);
+          font-weight: 600;
+        }
+      }
+
+      .scrubber-group {
+        pointer-events: none;
+
+        .scrubber-line {
+          stroke: var(--color-primary-400);
+          stroke-width: 2;
+          stroke-dasharray: 3 3;
+          opacity: 0.85;
+          filter: drop-shadow(0 0 4px var(--color-primary-400));
+        }
+
+        .scrubber-handle {
+          fill: var(--color-primary-400);
+        }
+      }
+    }
+  }
+}

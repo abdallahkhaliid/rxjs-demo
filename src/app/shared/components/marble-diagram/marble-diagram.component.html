@@ -1,0 +1,262 @@
+<div class="marble-container">
+  <div class="marble-header">
+    <div class="header-left">
+      <span class="marble-icon">🔮</span>
+      <span class="marble-title">Interactive Marble Diagram</span>
+      @if (operatorName()) {
+        <span class="operator-tag">{{ operatorName() }}</span>
+      }
+    </div>
+
+    <div class="header-controls">
+      <div class="speed-selector">
+        <button class="speed-btn" [class.active]="selectedSpeed() === 0.5" (click)="setSpeed(0.5)" type="button">0.5x</button>
+        <button class="speed-btn" [class.active]="selectedSpeed() === 1" (click)="setSpeed(1)" type="button">1x</button>
+        <button class="speed-btn" [class.active]="selectedSpeed() === 2" (click)="setSpeed(2)" type="button">2x</button>
+      </div>
+
+      <button
+        class="ctrl-btn play-btn"
+        [class.playing]="localIsPlaying()"
+        (click)="togglePlay()"
+        type="button"
+      >
+        {{ localIsPlaying() ? '⏸ Pause' : '▶ Play' }}
+      </button>
+
+      <button
+        class="ctrl-btn reset-btn"
+        (click)="resetTimeline()"
+        type="button"
+      >
+        ↺ Reset
+      </button>
+    </div>
+  </div>
+
+  <div class="svg-viewport">
+    <svg
+      [attr.viewBox]="'0 0 ' + SVG_WIDTH + ' ' + viewBoxHeight()"
+      preserveAspectRatio="xMidYMid meet"
+      class="marble-svg"
+    >
+      <defs>
+        <!-- Arrowhead Marker for Timeline Axis -->
+        <marker
+          id="arrowhead"
+          viewBox="0 0 10 10"
+          refX="6"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--color-border-strong)" />
+        </marker>
+
+        <!-- Drop shadow for marbles -->
+        <filter id="marbleShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.4" />
+        </filter>
+      </defs>
+
+      <!-- Input Streams -->
+      @for (stream of inputStreams(); track stream.id; let sIdx = $index) {
+        <g class="stream-group input-stream" (click)="onSvgClick($event, stream.id)">
+          <!-- Stream Label -->
+          <text
+            x="12"
+            [attr.y]="getStreamY(sIdx) + 4"
+            class="stream-label"
+          >
+            {{ stream.label }}
+          </text>
+
+          <!-- Timeline Axis Line -->
+          <line
+            [attr.x1]="PADDING_LEFT"
+            [attr.y1]="getStreamY(sIdx)"
+            [attr.x2]="SVG_WIDTH - PADDING_RIGHT"
+            [attr.y2]="getStreamY(sIdx)"
+            class="timeline-axis"
+            marker-end="url(#arrowhead)"
+          />
+
+          <!-- Completion Tick -->
+          @if (stream.completedAtMs !== undefined) {
+            <line
+              [attr.x1]="timeToX(stream.completedAtMs)"
+              [attr.y1]="getStreamY(sIdx) - 14"
+              [attr.x2]="timeToX(stream.completedAtMs)"
+              [attr.y2]="getStreamY(sIdx) + 14"
+              class="marker-completion"
+            />
+          }
+
+          <!-- Error Marker -->
+          @if (stream.errorAtMs !== undefined) {
+            <g class="marker-error">
+              <line
+                [attr.x1]="timeToX(stream.errorAtMs) - 8"
+                [attr.y1]="getStreamY(sIdx) - 8"
+                [attr.x2]="timeToX(stream.errorAtMs) + 8"
+                [attr.y2]="getStreamY(sIdx) + 8"
+              />
+              <line
+                [attr.x1]="timeToX(stream.errorAtMs) + 8"
+                [attr.y1]="getStreamY(sIdx) - 8"
+                [attr.x2]="timeToX(stream.errorAtMs) - 8"
+                [attr.y2]="getStreamY(sIdx) + 8"
+              />
+            </g>
+          }
+
+          <!-- Marbles -->
+          @for (emission of stream.emissions; track emission.id; let mIdx = $index) {
+            <g
+              class="marble-node"
+              (click)="onMarbleClick($event, stream.id, emission)"
+              filter="url(#marbleShadow)"
+            >
+              <circle
+                [attr.cx]="timeToX(emission.timeMs)"
+                [attr.cy]="getStreamY(sIdx)"
+                r="13"
+                [attr.fill]="getMarbleColor(mIdx, emission)"
+                class="marble-circle"
+              />
+              <text
+                [attr.x]="timeToX(emission.timeMs)"
+                [attr.y]="getStreamY(sIdx) + 1"
+                text-anchor="middle"
+                dominant-baseline="central"
+                class="marble-text"
+              >
+                {{ emission.displayLabel }}
+              </text>
+            </g>
+          }
+        </g>
+      }
+
+      <!-- Operator Transformation Box (if provided) -->
+      @if (operatorName()) {
+        <g class="operator-box-group">
+          <rect
+            [attr.x]="PADDING_LEFT"
+            [attr.y]="getOperatorBoxY()"
+            [attr.width]="TIMELINE_WIDTH"
+            height="34"
+            rx="6"
+            class="operator-box-rect"
+          />
+          <text
+            [attr.x]="PADDING_LEFT + TIMELINE_WIDTH / 2"
+            [attr.y]="getOperatorBoxY() + 18"
+            text-anchor="middle"
+            dominant-baseline="central"
+            class="operator-box-text"
+          >
+            {{ operatorName() }}
+          </text>
+        </g>
+      }
+
+      <!-- Output Stream (if provided) -->
+      @if (outputStream(); as outStream) {
+        <g class="stream-group output-stream" (click)="onSvgClick($event, outStream.id)">
+          <!-- Output Stream Label -->
+          <text
+            x="12"
+            [attr.y]="getOutputStreamY() + 4"
+            class="stream-label output-label"
+          >
+            {{ outStream.label || 'Output' }}
+          </text>
+
+          <!-- Timeline Axis Line -->
+          <line
+            [attr.x1]="PADDING_LEFT"
+            [attr.y1]="getOutputStreamY()"
+            [attr.x2]="SVG_WIDTH - PADDING_RIGHT"
+            [attr.y2]="getOutputStreamY()"
+            class="timeline-axis"
+            marker-end="url(#arrowhead)"
+          />
+
+          <!-- Completion Tick -->
+          @if (outStream.completedAtMs !== undefined) {
+            <line
+              [attr.x1]="timeToX(outStream.completedAtMs)"
+              [attr.y1]="getOutputStreamY() - 14"
+              [attr.x2]="timeToX(outStream.completedAtMs)"
+              [attr.y2]="getOutputStreamY() + 14"
+              class="marker-completion"
+            />
+          }
+
+          <!-- Error Marker -->
+          @if (outStream.errorAtMs !== undefined) {
+            <g class="marker-error">
+              <line
+                [attr.x1]="timeToX(outStream.errorAtMs) - 8"
+                [attr.y1]="getOutputStreamY() - 8"
+                [attr.x2]="timeToX(outStream.errorAtMs) + 8"
+                [attr.y2]="getOutputStreamY() + 8"
+              />
+              <line
+                [attr.x1]="timeToX(outStream.errorAtMs) + 8"
+                [attr.y1]="getOutputStreamY() - 8"
+                [attr.x2]="timeToX(outStream.errorAtMs) - 8"
+                [attr.y2]="getOutputStreamY() + 8"
+              />
+            </g>
+          }
+
+          <!-- Marbles -->
+          @for (emission of outStream.emissions; track emission.id; let oIdx = $index) {
+            <g
+              class="marble-node"
+              (click)="onMarbleClick($event, outStream.id, emission)"
+              filter="url(#marbleShadow)"
+            >
+              <circle
+                [attr.cx]="timeToX(emission.timeMs)"
+                [attr.cy]="getOutputStreamY()"
+                r="13"
+                [attr.fill]="getMarbleColor(oIdx, emission)"
+                class="marble-circle"
+              />
+              <text
+                [attr.x]="timeToX(emission.timeMs)"
+                [attr.y]="getOutputStreamY() + 1"
+                text-anchor="middle"
+                dominant-baseline="central"
+                class="marble-text"
+              >
+                {{ emission.displayLabel }}
+              </text>
+            </g>
+          }
+        </g>
+      }
+
+      <!-- Animated Scrubber Playhead -->
+      <g class="scrubber-group">
+        <line
+          [attr.x1]="scrubberX()"
+          y1="10"
+          [attr.x2]="scrubberX()"
+          [attr.y2]="viewBoxHeight() - 10"
+          class="scrubber-line"
+        />
+        <circle
+          [attr.cx]="scrubberX()"
+          cy="10"
+          r="4"
+          class="scrubber-handle"
+        />
+      </g>
+    </svg>
+  </div>
+</div>

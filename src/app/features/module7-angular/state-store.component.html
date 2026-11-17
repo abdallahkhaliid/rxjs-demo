@@ -1,0 +1,425 @@
+<app-playground-wrapper
+  [title]="recipeData.title"
+  [subtitle]="recipeData.subtitle"
+  [category]="recipeData.category"
+  [difficulty]="recipeData.difficulty"
+  topicId="state-management"
+  [(activeTab)]="activeTab"
+  [availableTabs]="['concept', 'code', 'visual', 'comparison', 'quiz']"
+>
+  <!-- 1. Concept Tab -->
+  <div slot="concept" class="tab-pane concept-pane">
+    <div class="concept-card highlight-card">
+      <div class="card-header">
+        <h3>🏛️ BehaviorSubject State Store Architecture</h3>
+      </div>
+      <p>{{ recipeData.description }}</p>
+      <div class="key-takeaways">
+        <div class="takeaway-item">
+          <span class="icon">💎</span>
+          <div>
+            <strong>Single Source of Truth & Synchronous Snapshot:</strong>
+            The private BehaviorSubject holds state in memory. External consumers read updates via state$ observable or synchronous getValue() inspection (F42.1).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🎯</span>
+          <div>
+            <strong>Selector Memoization (distinctUntilChanged):</strong>
+            Selectors project slices of the state tree and automatically suppress re-emissions if that specific slice has not changed, eliminating unnecessary child re-renders (F42.2, F42.4, F42.B3).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🔒</span>
+          <div>
+            <strong>Immutable State Transitions:</strong>
+            All state mutations create a fresh root state object via spread operations, preserving historical state snapshots for auditing and time-travel rollbacks (F42.3, F42.B1).
+          </div>
+        </div>
+        <div class="takeaway-item">
+          <span class="icon">🌉</span>
+          <div>
+            <strong>Angular 20 toSignal() Interoperability:</strong>
+            Bridging RxJS selector streams to Angular Signals unlocks reactive, zoneless template bindings without needing async pipes (F42.5).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Code Tab -->
+  <div slot="code" class="tab-pane code-pane">
+    <div class="code-subtabs">
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'storeService'"
+        (click)="codeSubTab.set('storeService')"
+        type="button"
+      >
+        Generic Store Base
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'courseStore'"
+        (click)="codeSubTab.set('courseStore')"
+        type="button"
+      >
+        Domain Store & Selectors
+      </button>
+      <button
+        class="subtab-btn"
+        [class.active]="codeSubTab() === 'signalBridge'"
+        (click)="codeSubTab.set('signalBridge')"
+        type="button"
+      >
+        toSignal() Zoneless Bridge
+      </button>
+    </div>
+
+    @if (codeSubTab() === 'storeService') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['storeService'].code"
+        [title]="recipeData.codeSnippets['storeService'].title"
+        language="typescript"
+      />
+    }
+    @if (codeSubTab() === 'courseStore') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['courseStore'].code"
+        [title]="recipeData.codeSnippets['courseStore'].title"
+        language="typescript"
+      />
+    }
+    @if (codeSubTab() === 'signalBridge') {
+      <app-code-block
+        [code]="recipeData.codeSnippets['signalBridge'].code"
+        [title]="recipeData.codeSnippets['signalBridge'].title"
+        language="typescript"
+      />
+    }
+  </div>
+
+  <!-- 3. Visual Demo Tab -->
+  <div slot="visual" class="tab-pane visual-pane">
+    <div class="store-workbench">
+      <!-- Section 1: Store Controls & Action Dispatchers -->
+      <div class="store-controls-card">
+        <div class="search-and-actions">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              [ngModel]="searchInput()"
+              (ngModelChange)="onSearchChange($event)"
+              placeholder="Search courses by keyword..."
+              class="search-input"
+              data-testid="store-search-input"
+            />
+          </div>
+
+          <div class="quick-actions">
+            <button
+              class="btn btn-primary"
+              (click)="openAddModal()"
+              type="button"
+              data-testid="open-add-modal-btn"
+            >
+              ➕ Add Course
+            </button>
+            <button
+              class="btn btn-secondary btn-outline"
+              (click)="onResetStore()"
+              type="button"
+              data-testid="reset-store-btn"
+            >
+              🔄 Reset Store
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Pills Rows -->
+        <div class="filters-row">
+          <div class="filter-group">
+            <span class="filter-label">Category:</span>
+            <div class="pills-container">
+              @for (cat of ['all', 'RxJS', 'Angular', 'TypeScript', 'Architecture']; track cat) {
+                <button
+                  class="pill-btn"
+                  [class.active]="activeCategory() === cat"
+                  (click)="onCategorySelect(cat)"
+                  type="button"
+                  [attr.data-testid]="'filter-cat-' + cat.toLowerCase()"
+                >
+                  {{ cat === 'all' ? 'All Categories' : cat }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Difficulty:</span>
+            <div class="pills-container">
+              @for (diff of ['all', 'beginner', 'intermediate', 'advanced']; track diff) {
+                <button
+                  class="pill-btn"
+                  [class.active]="activeDifficulty() === diff"
+                  (click)="onDifficultySelect(diff)"
+                  type="button"
+                  [attr.data-testid]="'filter-diff-' + diff"
+                >
+                  {{ diff === 'all' ? 'All Difficulties' : (diff | titlecase) }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Bridged Signals & Course Cards -->
+      <div class="signals-stats-ribbon">
+        <div class="signal-badge" data-testid="signal-total-courses">
+          <span class="badge-label">Total Courses (toSignal)</span>
+          <span class="badge-val">{{ totalCourses() }}</span>
+        </div>
+        <div class="signal-badge" data-testid="signal-enrolled-courses">
+          <span class="badge-label">Enrolled (toSignal)</span>
+          <span class="badge-val highlight">{{ enrolledCourses() }}</span>
+        </div>
+        <div class="signal-badge" data-testid="signal-active-category">
+          <span class="badge-label">Active Filter (toSignal)</span>
+          <span class="badge-val uppercase">{{ activeCategory() }}</span>
+        </div>
+        <div class="signal-badge">
+          <span class="badge-label">Matched Courses</span>
+          <span class="badge-val">{{ filteredCourses().length }}</span>
+        </div>
+      </div>
+
+      <!-- Course Cards Grid -->
+      <div class="courses-grid" data-testid="courses-grid">
+        @if (filteredCourses().length > 0) {
+          @for (course of filteredCourses(); track course.id + '-' + $index) {
+            <div class="course-card" [class.enrolled]="course.enrolled">
+              <div class="course-card-header">
+                <span class="cat-tag">{{ course.category }}</span>
+                <span class="diff-tag" [class]="course.difficulty">{{ course.difficulty }}</span>
+              </div>
+              <h4 class="course-title">{{ course.title }}</h4>
+              <div class="course-meta">
+                <span>⭐ {{ course.rating }}</span>
+                <span>📚 {{ course.lessonsCount }} lessons</span>
+              </div>
+              <div class="course-actions">
+                <button
+                  class="btn btn-sm"
+                  [class.btn-success]="course.enrolled"
+                  [class.btn-primary]="!course.enrolled"
+                  (click)="onToggleEnroll(course)"
+                  type="button"
+                  data-testid="toggle-enroll-btn"
+                >
+                  {{ course.enrolled ? '✓ Enrolled' : '+ Enroll Now' }}
+                </button>
+                <button
+                  class="btn btn-sm btn-danger btn-outline"
+                  (click)="onDeleteCourse(course)"
+                  type="button"
+                  data-testid="delete-course-btn"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          }
+        } @else {
+          <div class="no-courses-placeholder">
+            No courses match the current category / difficulty / search filter.
+          </div>
+        }
+      </div>
+
+      <!-- Section 3: Selector Optimization Monitor (distinctUntilChanged) -->
+      <div class="selector-monitor-card">
+        <div class="monitor-header">
+          <h4>📊 Selector Memoization Monitor (distinctUntilChanged)</h4>
+          <span class="monitor-badge">F42.4 & F42.B3 Verified</span>
+        </div>
+        <p class="monitor-desc">
+          Evaluates how distinctUntilChanged prevents redundant notifications. For example, changing the Category filter evaluates <code>filterCategory$</code> and <code>filteredCourses$</code>, but leaves <code>enrolledCount$</code> completely untouched!
+        </p>
+
+        <div class="eval-counters-grid">
+          <div class="eval-box" data-testid="eval-courses">
+            <span class="eval-label">courses$ Evaluations</span>
+            <span class="eval-num">{{ store.selectorEvaluations.courses }}</span>
+          </div>
+          <div class="eval-box" data-testid="eval-filterCategory">
+            <span class="eval-label">filterCategory$ Evaluations</span>
+            <span class="eval-num highlight">{{ store.selectorEvaluations.filterCategory }}</span>
+          </div>
+          <div class="eval-box" data-testid="eval-filteredCourses">
+            <span class="eval-label">filteredCourses$ Evaluations</span>
+            <span class="eval-num highlight">{{ store.selectorEvaluations.filteredCourses }}</span>
+          </div>
+          <div class="eval-box" data-testid="eval-enrolledCount">
+            <span class="eval-label">enrolledCount$ Evaluations</span>
+            <span class="eval-num">{{ store.selectorEvaluations.enrolledCount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: State Transition Audit Timeline (Time-Travel) -->
+      <div class="timeline-audit-card">
+        <div class="timeline-header">
+          <h4>⏱️ State Transition Audit Log & Time-Travel</h4>
+          <span class="timeline-count">{{ timelineHistory().length }} Transitions Recorded</span>
+        </div>
+
+        <div class="timeline-table-wrapper" data-testid="timeline-history">
+          <table class="timeline-table">
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>Timestamp</th>
+                <th>Action Dispatched</th>
+                <th>Courses Count</th>
+                <th>Category</th>
+                <th>Time-Travel</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of timelineHistory(); track entry.id + '-' + idx; let idx = $index) {
+                <tr>
+                  <td>#{{ idx }}</td>
+                  <td>{{ entry.timestamp | date:'HH:mm:ss' }}</td>
+                  <td><code>{{ entry.action }}</code></td>
+                  <td>{{ entry.stateSnapshot.courses.length }}</td>
+                  <td>{{ entry.stateSnapshot.filterCategory }}</td>
+                  <td>
+                    <button
+                      class="btn btn-sm btn-secondary"
+                      (click)="onRollback(entry)"
+                      type="button"
+                      data-testid="rollback-btn"
+                    >
+                      ⏪ Rollback
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section 5: Boundary Integrity Checks (F42.B2, F42.B4, F42.B5) -->
+      <div class="boundary-card">
+        <h4>🧪 Boundary Integrity Verifiers</h4>
+        <div class="verifier-buttons">
+          <button
+            class="btn btn-secondary"
+            (click)="testNonExistentProperty()"
+            type="button"
+            data-testid="test-nonexistent-btn"
+          >
+            F42.B2: Select Non-Existent Slice
+          </button>
+          <button
+            class="btn btn-secondary"
+            (click)="testDeepSliceSelection()"
+            type="button"
+            data-testid="test-deep-slice-btn"
+          >
+            F42.B4: Select 5-Level Deep Slice
+          </button>
+          <button
+            class="btn btn-secondary"
+            (click)="testUnknownAction()"
+            type="button"
+            data-testid="test-unknown-action-btn"
+          >
+            F42.B5: Dispatch Unknown Action
+          </button>
+        </div>
+
+        @if (boundaryTestMessage()) {
+          <div class="boundary-result-message" data-testid="boundary-test-msg">
+            {{ boundaryTestMessage() }}
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Modal for Adding Course -->
+    @if (showAddModal()) {
+      <div class="modal-backdrop" data-testid="add-course-modal">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>Add New Course</h3>
+            <button class="close-btn" (click)="closeAddModal()" type="button">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Course Title</label>
+              <input
+                type="text"
+                [(ngModel)]="newCourseTitle"
+                placeholder="e.g. RxJS Schedulers in Depth"
+                class="form-input"
+              />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Category</label>
+                <select [(ngModel)]="newCourseCategory" class="form-select">
+                  <option value="RxJS">RxJS</option>
+                  <option value="Angular">Angular</option>
+                  <option value="TypeScript">TypeScript</option>
+                  <option value="Architecture">Architecture</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Difficulty</label>
+                <select [(ngModel)]="newCourseDifficulty" class="form-select">
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="closeAddModal()" type="button">Cancel</button>
+            <button
+              class="btn btn-primary"
+              (click)="confirmAddCourse()"
+              [disabled]="!newCourseTitle.trim()"
+              type="button"
+            >
+              Add Course
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Live Output Console -->
+    <div class="console-section">
+      <app-output-console
+        title="BehaviorSubject Store Event Log"
+        [entries]="consoleEntries()"
+        (clear)="clearConsole()"
+      />
+    </div>
+  </div>
+
+  <!-- 4. Comparison Tab -->
+  <div slot="comparison" class="tab-pane comparison-pane">
+    <app-comparison-table [data]="comparisonData" />
+  </div>
+
+  <!-- 5. Quiz Tab -->
+  <div slot="quiz" class="tab-pane quiz-pane">
+    <app-quiz-block [questions]="quizzes" topicId="state-management" />
+  </div>
+</app-playground-wrapper>
